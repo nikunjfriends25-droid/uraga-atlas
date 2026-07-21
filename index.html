@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Uraga Atlas — reptiles &amp; amphibians of the Indian subcontinent</title>
+<meta name="description" content="An occurrence atlas of the 1,096 reptile and amphibian species of the Indian subcontinent, built on IUCN Red List, GBIF and iNaturalist data.">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <div id="boot"><p>Loading the atlas…</p></div>
+  <div id="stage"><div id="map"></div></div>
+
+  <aside class="panel" id="panel">
+    <div class="phead">
+      <div class="brand"><b>Uraga</b><span>Atlas</span></div>
+      <div class="sub">Reptiles &amp; amphibians of the Indian subcontinent</div>
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input id="q" type="text" placeholder="Species, family, place…" aria-label="Search">
+      </div>
+    </div>
+
+    <div class="pbody" id="pbody"></div>
+
+    <div class="pfoot">
+      <span id="foot"></span>
+      <button class="reset" id="reset">Reset</button>
+    </div>
+  </aside>
+
+  <button class="edgetab tab-left" id="handle" aria-expanded="true"
+          aria-controls="panel" title="Show or hide the filters">
+    <span id="handleIcon">‹</span> <span>Filters</span>
+  </button>
+
+  <div class="hud">
+    <div class="card">
+      <dl class="readout">
+        <div><dt>Records shown</dt><dd class="num" id="r-occ">—</dd></div>
+        <div><dt>Species</dt><dd class="num" id="r-sp">—</dd></div>
+        <div><dt>Clusters</dt><dd class="num" id="r-cl">—</dd></div>
+      </dl>
+    </div>
+    <div class="card legend" id="legend"></div>
+  </div>
+
+  <button class="edgetab tab-bottom" id="dockhandle" aria-expanded="true"
+          aria-controls="dock" title="Show or hide the species panel">
+    <span id="dockhandleIcon">⌄</span> <span id="dockhandleTxt">Species</span>
+  </button>
+
+  <section class="dock" id="dock">
+    <button class="dockbar" id="dockbar" aria-expanded="true">
+      <span class="car">⌄</span>
+      <h3 id="dockttl">Overview</h3>
+      <span class="hint" id="dockhint"></span><span class="expand" id="expand" hidden>Full record ▴</span><span class="attribution" id="attrib"></span>
+    </button>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <!-- The tab is a SIBLING of the panel, not a child: as a child it inherited
+       the panel's translateX(100%) when collapsed and rode off-screen with it,
+       leaving no way to reopen the panel. -->
+  <button class="edgetab tab-right" id="rgnhandle" aria-expanded="true"
+          aria-controls="rgnpanel" title="Show or hide regions and reports">
+    <span id="rgnhandleIcon">›</span> <span>Regions</span>
+  </button>
+
+  <aside class="rgnpanel" id="rgnpanel">
+    <div class="rgnhead">
+      <h2>Regions &amp; reports</h2>
+      <p>Narrow country → state → district → sub-district. Export a checklist at any level.</p>
+    </div>
+    <div class="rgnbody" id="rgnbody"></div>
+    <div class="rgnfoot">
+      <label class="rgnlab">Map style</label>
+      <div class="chips" id="viewToggle">
+        <button class="chip" data-view="heat" aria-pressed="true">Heatmap</button>
+        <button class="chip" data-view="clusters" aria-pressed="false">Bubbles</button>
+      </div>
+      <label class="rgnlab" for="baseSel" style="margin-top:9px;display:block">Basemap</label>
+      <select id="baseSel" class="rgnq rgnco">
+        <option value="positron">Positron — pale grey</option>
+        <option value="voyager">Voyager — soft colour</option>
+        <option value="darkmatter">Dark Matter</option>
+        <option value="imagery">Satellite imagery</option>
+        <option value="topo">Terrain</option>
+      </select>
+    </div>
+  </aside>
+
+  <div class="zoom">
+    <button id="zin" aria-label="Zoom in">+</button>
+    <button id="zout" aria-label="Zoom out">−</button>
+  </div>
+  <div class="busy" id="busy" role="status" aria-live="polite" hidden>
+    <span class="spinner" aria-hidden="true"></span>
+    <span class="busylbl">Loading…</span>
+  </div>
+  <div class="tip" id="tip"></div>
+  <div class="rc2" id="rc2" role="dialog" aria-label="Occurrence record"></div>
+</div>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Photograph" hidden></div>
+<div id="report" aria-hidden="true"></div>
+<script src="vendor/leaflet.js"></script>
+<script src="analysis.js"></script>
+<script src="report.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
