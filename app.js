@@ -224,9 +224,16 @@ function opt(label, count, on, onClick, color){
   b.onclick = onClick;
   return b;
 }
+/* buildPanel() recreates these elements on every render — selecting a species,
+   expanding a tree node, changing a filter — so a collapsed section reopened
+   itself every time. Open state is remembered per title and reapplied. */
+const accOpen = {};
+
 function accordion(title, chosen, children, open){
   const d = document.createElement('details');
-  d.className = 'acc'; d.open = open;
+  d.className = 'acc';
+  d.open = title in accOpen ? accOpen[title] : open;
+  d.addEventListener('toggle', () => { accOpen[title] = d.open; });
   d.innerHTML = `<summary class="acch"><span class="car">›</span>${title}
     <span class="cnt">${chosen || 'All'}</span></summary>`;
   const body = document.createElement('div');
