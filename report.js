@@ -561,6 +561,7 @@ function reportHTML(rows, thumbs, rings, restricted){
   ${sectionVenom(rows, byId)}
   ${restricted}
   ${sectionTrend(rows, byId)}
+  ${sectionMolecular(rows, byId)}
   ${sectionSeason()}
   ${sectionTaxa(rows)}
 

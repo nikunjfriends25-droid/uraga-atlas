@@ -40,6 +40,11 @@ const API = {
   // OBIS holds marine occurrences GBIF under-covers (sea turtles, sea snakes).
   // The WKT polygon MUST be encoded — unencoded spaces silently break the URL,
   // which is what made an earlier attempt look like OBIS had no data at all.
+  // NCBI deep links — data is public domain; we precompute the counts and link
+  // out to the live database rather than fetching at record time
+  ncbiSeq: name => `https://www.ncbi.nlm.nih.gov/nuccore/?term=${encodeURIComponent(name + '[Organism]')}`,
+  ncbiTax: name => `https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?name=${encodeURIComponent(name)}`,
+  ncbiGenome: name => `https://www.ncbi.nlm.nih.gov/assembly/?term=${encodeURIComponent(name + '[Organism]')}`,
   obis: name => 'https://api.obis.org/v3/occurrence?' + new URLSearchParams({
     scientificname: name, size: 500,
     geometry: `POLYGON((${P.minLon} ${P.minLat},${P.maxLon} ${P.minLat},` +
@@ -846,6 +851,29 @@ function drawDock(totalRecords, clusterCount){
   box.appendChild(clr);
 }
 
+
+/** Genetic-resource availability from NCBI (precomputed, public domain).
+ *  Not a genomics view — a research-completeness signal with live deep links.
+ *  Absent for a species the NCBI pass has not yet covered. */
+function geneticsCard(sp){
+  const g = sp.gen_;
+  if (!g) return '';
+  const barcode = g.c > 0
+    ? `<b>Yes</b> · ${fmt(g.c)} COI` : 'None on record';
+  const genome = g.g > 0 ? `<b>${fmt(g.g)}</b>` : 'None';
+  const seq = g.s > 0
+    ? `<a class="link" href="${API.ncbiSeq(sp.sci)}" target="_blank" rel="noopener">${fmt(g.s)} on GenBank ↗</a>`
+    : 'No sequences on record';
+  return `<div class="secttl">Genetic resources</div>
+    <dl class="qf">
+      <div><dt>GenBank sequences</dt><dd style="font-size:12px">${seq}</dd><div class="src">NCBI, public domain</div></div>
+      <div><dt>DNA barcode (COI)</dt><dd style="font-size:12px">${barcode}</dd><div class="src">for molecular ID</div></div>
+      <div><dt>Sequenced genome</dt><dd style="font-size:12px">${genome}</dd>
+        <div class="src">${g.g > 0 ? `<a class="link" href="${API.ncbiGenome(sp.sci)}" target="_blank" rel="noopener">NCBI Assembly ↗</a>` : 'NCBI Assembly'}</div></div>
+      <div><dt>Taxonomy</dt><dd style="font-size:12px"><a class="link" href="${API.ncbiTax(sp.sci)}" target="_blank" rel="noopener">NCBI ↗</a></dd><div class="src">reference record</div></div>
+    </dl>`;
+}
+
 function drawRecord(){
   const sp = picked, d = detail, c = `var(${IUC[sp.iucn]})`;
   const photos = live ? live.photos : [];
@@ -886,6 +914,7 @@ function drawRecord(){
       ${d && d.venom ? `<div class="secttl">Venom</div><div class="ai">
         <article style="border-left-color:#F0554A"><h5 style="color:#FF8A80">${d.venom.l}</h5>
         <p>${d.venom.s || ''} — recorded with <b>${d.venom.c}</b> confidence.</p></article></div>` : ''}
+      ${geneticsCard(picked)}
       <div class="secttl">Field notes</div>
       <div class="aiwarn">✦ AI-generated · not expert-verified</div>
       <div class="seg" role="tablist">
@@ -901,6 +930,7 @@ function drawRecord(){
       <p class="provp">Status, assessment, trend, region and habitat from the <b>IUCN Red List</b>.
         Occurrence points fetched live from <b>GBIF</b>. Photographs fetched live from
         <b>iNaturalist</b>, each carrying its own contributor credit and licence.
+        Genetic-resource counts from <b>NCBI</b> (public domain), linking to the live database.
         Field notes are machine-generated and have not been reviewed by a specialist.</p>
     </div>`;
   $('#cards').appendChild(wrap);

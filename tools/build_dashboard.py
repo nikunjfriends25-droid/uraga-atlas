@@ -81,6 +81,7 @@ def main(a):
                s.grp grp, s.class cls, s.inatName inat, s.inatTaxonId inatKey,
                s.gbifTaxonKey gbifKey, s.taxOrder ordr, s.taxSuborder subordr,
                s.taxFamily txfam, s.taxSubfamily subfam,
+               s.ncbiSeq nseq, s.ncbiCoi ncoi, s.ncbiGenome ngen,
                i.iucnCategory iucn, i.assessmentYear yr,
                (SELECT COUNT(*) FROM occurrence o WHERE o.speciesId=s.id) nOcc
         FROM species s LEFT JOIN iucnData i ON i.speciesId=s.id
@@ -122,6 +123,10 @@ def main(a):
         # OBIS would only ever answer zero for them
         index[-1]['mar'] = 1 if ((r['fam'] or '') in MARINE_FAMILIES
                                  or (r['gen'] or '') in MARINE_GENERA) else 0
+        # genetic-resource availability from NCBI (public domain). null until
+        # the fetch_ncbi_genetics.py pass has covered this species.
+        if r['nseq'] is not None:
+            index[-1]['gen_'] = {'s': r['nseq'], 'c': r['ncoi'], 'g': r['ngen']}
         ai = {x['fieldName']: x['generatedText'] for x in db.execute(
             'SELECT fieldName,generatedText FROM generationLog WHERE speciesId=? AND outputCharCount>0',
             (r['id'],))}

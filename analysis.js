@@ -234,6 +234,35 @@ function sectionTrend(rows, byId){
   </section>`;
 }
 
+
+function sectionMolecular(rows, byId){
+  // precomputed NCBI availability; a species is skipped only if the pass has
+  // not covered it (gen_ absent), not if it genuinely has no data (counts 0)
+  const g = rows.map(r => (byId.get(r[0]) || {}).gen_).filter(Boolean);
+  if (!g.length) return '';
+  const seq = g.filter(x => x.s > 0).length;
+  const coi = g.filter(x => x.c > 0).length;
+  const gen = g.filter(x => x.g > 0).length;
+  const pc = n => Math.round(100 * n / g.length);
+  return `<section class="rsec">
+    <h2>Molecular data availability</h2>
+    <p class="rlead">How genetically characterised this region's fauna is, from
+      NCBI GenBank (public domain). A completeness axis distinct from occurrence
+      records — a species can be well sequenced yet barely recorded in the field,
+      or the reverse. Based on ${fmt(g.length)} of ${fmt(rows.length)} species
+      resolved against NCBI.</p>
+    <dl class="rstats">
+      <div><dt>Have a GenBank sequence</dt><dd>${fmt(seq)}</dd></div>
+      <div><dt>Have a DNA barcode (COI)</dt><dd>${fmt(coi)}</dd></div>
+      <div><dt>Have a sequenced genome</dt><dd>${fmt(gen)}</dd></div>
+      <div><dt>Any genetic record</dt><dd>${pc(seq)}%</dd></div>
+    </dl>
+    <p class="rnote2">A COI barcode is the standard marker for molecular
+      identification; a sequenced genome exists for only the most-studied
+      species. Counts are a snapshot — the linked NCBI records are current.</p>
+  </section>`;
+}
+
 function sectionContext(){
   if (!region.parentCode || !rIndex) return '';
   const p = byCode(region.parentCode);
