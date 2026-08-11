@@ -36,6 +36,9 @@ function speciesMapSVG(sp, points, range, rings){
   const inView = r => r.some(p => p[0] > x0 - 6 && p[0] < x1 + 6 && p[1] > y0 - 6 && p[1] < y1 + 6);
 
   const land = (rings || []).filter(r => r.length > 2 && inView(r)).map(path).join(' ');
+  const borderSvg = (typeof _borders !== 'undefined' && _borders ? _borders : [])
+    .filter(r => r.length > 1 && inView(r))
+    .map(r => `<path d="${path(r)}" fill="none" stroke="#C9C6BE" stroke-width=".5"/>`).join('');
   const rangeSvg = polys.map(poly => poly.map(ring =>
     `<path d="${path(ring)}" fill="#38A169" fill-opacity=".16" stroke="#2F855A" stroke-width=".8"/>`
   ).join('')).join('');
@@ -47,7 +50,8 @@ function speciesMapSVG(sp, points, range, rings){
     <h2>Distribution</h2>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Distribution of ${esc(sp.sci)}">
       <rect width="${W}" height="${H}" fill="#F3F1EC"/>
-      <path d="${land}" fill="#FFFFFF" stroke="#C9C6BE" stroke-width=".8"/>
+      <path d="${land}" fill="#FFFFFF" stroke="#B9B5AC" stroke-width=".7"/>
+      ${borderSvg}
       ${rangeSvg}${ptsSvg}
       ${locatorInset(rings, [x0, y0, x1, y1], W, H)}
     </svg>
@@ -103,7 +107,9 @@ function speciesReportHTML(sp, d, got, range, rings, photos){
   </header>
 
   ${photos.length ? `<section class="rmap"><div class="spphotos">
-      ${photos.slice(0, 6).map(p => `<img src="${p.url}" alt="">`).join('')}
+      <img class="sphero" src="${photos[0].url}" alt="${esc(sp.sci)}">
+      ${photos.length > 1 ? `<div class="sprow">${photos.slice(1, 4).map(p =>
+        `<img src="${p.url}" alt="">`).join('')}</div>` : ''}
     </div></section>` : ''}
 
   <dl class="rstats">
@@ -175,6 +181,7 @@ async function makeSpeciesReport(sp, btn){
     catch (e){ /* no range: the map falls back to points only */ }
   }
   const rings = await coastline();
+  await borders();
   const photos = ((got && got.photos) || []).filter(p => usableLicence(p.licence));
 
   openReport(speciesReportHTML(sp, d, got, range, rings, photos), sp.sci);

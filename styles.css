@@ -703,18 +703,22 @@ body:not(.rgnclosed) #report.on{right:312px}
 .recbtns .link{margin-left:auto}
 
 /* species-report photo strip + AI cards (print) */
+.spphotos{display:flex;flex-direction:column;gap:6px}
+.sphero{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;display:block}
+.sprow{display:flex;gap:6px}
+.sprow img{flex:1;min-width:0;aspect-ratio:1;object-fit:cover;border-radius:6px}
+.raicard{border-left:2.5px solid #D97706;padding:2px 0 2px 9px;margin:0 0 8px}
+.raicard h5{margin:0 0 3px;font-size:11px;color:#111}
+.raicard p{margin:0;font-size:10px;line-height:1.55;color:#333}
 @media print{
-  .spphotos{display:flex;gap:5pt;flex-wrap:wrap}
-  .spphotos img{width:80pt;height:80pt;object-fit:cover;border-radius:3pt}
+  .spphotos{gap:5pt;break-inside:avoid}
+  .sphero{aspect-ratio:16/9;border-radius:3pt}
+  .sprow{gap:5pt}
+  .sprow img{border-radius:3pt}
   .raicard{border-left:2.5pt solid #D97706;padding:2pt 0 2pt 8pt;margin:0 0 7pt}
   .raicard h5{margin:0 0 2pt;font-size:9pt}
   .raicard p{margin:0;font-size:8.5pt;line-height:1.5;color:#333}
 }
-.spphotos{display:flex;gap:6px;flex-wrap:wrap}
-.spphotos img{width:84px;height:84px;object-fit:cover;border-radius:8px}
-.raicard{border-left:2.5px solid #D97706;padding:2px 0 2px 9px;margin:0 0 8px}
-.raicard h5{margin:0 0 3px;font-size:11px;color:#111}
-.raicard p{margin:0;font-size:10px;line-height:1.55;color:#333}
 
 /* ── onboarding tour ──────────────────────────────────── */
 .tour{position:fixed;inset:0;z-index:70}

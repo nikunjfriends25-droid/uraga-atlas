@@ -203,6 +203,7 @@ async function makeReport(btn){
     console.warn('thumbnails unavailable', e);
   }
   const rings = await coastline();
+  await borders();
   const restricted = await sectionRestricted(rows);   // needs spread.json
   openReport(reportHTML(rows, thumbs, rings, restricted));
   await imagesSettled((n, total) => {
@@ -388,13 +389,20 @@ function placeholder(){
  * on blank paper is unreadable — plus the region outline and the same heat
  * cells and colour ramp the screen map uses, so the two agree.
  */
-let _rings = null;
+let _rings = null, _borders = null;
 async function coastline(){
   if (_rings) return _rings;
   try {
     _rings = (await fetch('data/basemap.json', DATA_FETCH).then(r => r.json())).rings;
   } catch { _rings = []; }
   return _rings;
+}
+async function borders(){
+  if (_borders) return _borders;
+  try {
+    _borders = (await fetch('data/borders.json', DATA_FETCH).then(r => r.json())).lines;
+  } catch { _borders = []; }
+  return _borders;
 }
 
 
@@ -501,6 +509,8 @@ function reportMapSVG(rings, rows){
 
   const land = (rings || []).filter(r => r.length > 2 && inView(r))
     .map(r => path(r)).join(' ');
+  const borderSvg = (_borders || []).filter(r => r.length > 1 && inView(r))
+    .map(r => `<path d="${path(r)}" fill="none" stroke="#C9C6BE" stroke-width=".5"/>`).join('');
 
   const cellSvg = cells.map(c => {
     const lon = c.kx * cellSize, lat = c.ky * cellSize;
@@ -525,7 +535,8 @@ function reportMapSVG(rings, rows){
          aria-label="Occurrence density of reptiles and amphibians in ${region.name}">
       <defs><clipPath id="rgnclip"><path d="${outline}"/></clipPath></defs>
       <rect width="${W}" height="${H}" fill="#F3F1EC"/>
-      <path d="${land}" fill="#FFFFFF" stroke="#C9C6BE" stroke-width=".8"/>
+      <path d="${land}" fill="#FFFFFF" stroke="#B9B5AC" stroke-width=".7"/>
+      ${borderSvg}
       <g clip-path="url(#rgnclip)">${cellSvg}</g>
       <path d="${outline}" fill="none" stroke="#111" stroke-width="1.3"
             stroke-linejoin="round"/>
