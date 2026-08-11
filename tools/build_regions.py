@@ -144,7 +144,7 @@ def main(a):
         A cap keeps any single region file bounded."""
         minx, miny, maxx, maxy = geom.bounds
         extent = max(maxx - minx, maxy - miny, 1e-6)
-        base = min(0.55, max(0.08, extent / 40))
+        base = min(0.55, max(0.04, extent / 40))
 
         def grid_at(cell):
             g = collections.defaultdict(collections.Counter)
