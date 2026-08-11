@@ -11,7 +11,7 @@
 
 /* Labels are geoBoundaries ADM0–ADM3. Local terms differ (Bhutan's ADM1 is a
    dzongkhag, Sri Lanka's a province) — the hierarchy is right either way. */
-const LEVELS = {0: 'Country', 1: 'State', 2: 'District', 3: 'Sub-district'};
+const LEVELS = {0: 'Country', 1: 'State', 2: 'District', 3: 'Sub-district', aoi: 'Area of interest'};
 const LEVEL_ORDER = [0, 1, 2, 3];
 const RGN = 'data/regions/';
 /* "6 countrys" — the naive +s was wrong for exactly the top level. */
@@ -472,6 +472,7 @@ function locatorInset(rings, bbox, W, H){
 }
 
 function reportMapSVG(rings, rows){
+  if (region && region.aoi) return aoiMapSVG(rings);   // aoi.js — outline, no heat grid
   if (!region || !region.cells || !region.cells.length) return '';
   const W = 560, H = 380, PAD = 14;
 

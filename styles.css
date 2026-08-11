@@ -703,6 +703,20 @@ body:not(.rgnclosed) #report.on{right:312px}
 .rimg .splink{display:inline-block}
 @media print{.splink{color:inherit;text-decoration:none}}
 
+/* Area-of-interest controls in the regions panel */
+.aoibox{padding:11px 14px;border-top:1px solid var(--line)}
+.aoihead{font-size:12.5px;font-weight:700;color:var(--ink);letter-spacing:.01em}
+.aoihint{font-size:10.5px;color:var(--muted);line-height:1.45;margin:3px 0 9px}
+.aoibtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.aoibtns + .aoibtns{margin-top:8px}
+.aoibtn{padding:7px 11px;border-radius:8px;font-size:11.5px;font-weight:600;
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);cursor:pointer;transition:.13s}
+.aoibtn:hover{border-color:var(--accent)}
+.aoibtn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.aoibox .rgnpdf{flex:1}
+.aoistatus{font-size:10.5px;color:var(--muted);line-height:1.45;margin:8px 0 0}
+.aoistatus.warn{color:#C0562F}
+
 /* full-record Export button row */
 .recbtns{display:flex;align-items:center;gap:10px;margin-top:14px}
 .recbtns .recexport{padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700}
