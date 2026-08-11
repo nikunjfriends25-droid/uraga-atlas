@@ -227,16 +227,16 @@ async function makeReport(btn){
 // which is exactly what a CSS `content` value needs.
 const cssStr = s => JSON.stringify(String(s));
 
-function setPageFurniture(){
+function setPageFurniture(label){
   let el = document.getElementById('pagefurniture');
   if (!el){
     el = document.createElement('style');
     el.id = 'pagefurniture';
     document.head.appendChild(el);
   }
-  const where = region
+  const where = label || (region
     ? `${region.name} · ${LEVELS[region.lvl]}${region.parent ? ', ' + region.parent : ''}`
-    : 'Species report';
+    : 'Species record');
   const when = new Date().toLocaleDateString('en-IN',
     {year: 'numeric', month: 'short', day: 'numeric'});
   const type = 'font-family:"Sora",system-ui,sans-serif;font-size:7.5pt;color:#8a8580';
@@ -259,10 +259,10 @@ function setPageFurniture(){
     }`;
 }
 
-function openReport(html){
+function openReport(html, title){
   const r = $('#report');
   r.innerHTML = `<div class="rbar">
-      <span class="rttl">${region.name} · species report</span>
+      <span class="rttl">${title || (region ? region.name + ' · species report' : 'Report')}</span>
       <button class="rsave">Save as PDF</button>
       <button class="rclose" aria-label="Close report">Close</button>
     </div>` + html;
@@ -421,6 +421,37 @@ function sectionCredits(rows, thumbs){
   </section>`;
 }
 
+/** A small locator inset: the whole subcontinent drawn in a corner of the map,
+ *  with a red square marking the bounding box of the area being reported. Same
+ *  equirectangular projection maths as the maps it sits in. Placed bottom-left
+ *  inside a WxH map SVG. `bbox` is [lon0,lat0,lon1,lat1] of the reported area. */
+function locatorInset(rings, bbox, W, H){
+  const IW = 96, IH = 108, PAD = 6, M = 8;               // inset size + page margin
+  // subcontinent extent (matches the atlas P), a touch of padding
+  const e0 = 60, e1 = 98, f0 = 5, f1 = 38;
+  const k = Math.cos((f0 + f1) / 2 * Math.PI / 180);
+  const s = Math.min((IW - PAD * 2) / ((e1 - e0) * k), (IH - PAD * 2) / (f1 - f0));
+  const ox = PAD + ((IW - PAD * 2) - (e1 - e0) * k * s) / 2;
+  const oy = PAD + ((IH - PAD * 2) - (f1 - f0) * s) / 2;
+  const X = lon => (ox + (lon - e0) * k * s).toFixed(1);
+  const Y = lat => (oy + (f1 - lat) * s).toFixed(1);
+  const path = ring => 'M' + ring.map(p => X(p[0]) + ',' + Y(p[1])).join(' L') + 'Z';
+  const inBox = r => r.some(p => p[0] > e0 - 4 && p[0] < e1 + 4 && p[1] > f0 - 4 && p[1] < f1 + 4);
+  const land = (rings || []).filter(r => r.length > 2 && inBox(r)).map(path).join(' ');
+  // the reported area's bbox as a red rectangle
+  const bx = X(bbox[0]), by = Y(bbox[3]), bw = (X(bbox[2]) - X(bbox[0])).toFixed(1),
+        bh = (Y(bbox[1]) - Y(bbox[3])).toFixed(1);
+  const tx = W - IW - M, ty = H - IH - M;                // bottom-right corner
+  return `<g transform="translate(${tx},${ty})">
+    <rect width="${IW}" height="${IH}" fill="#FFFFFF" stroke="#C9C6BE" stroke-width=".8" rx="3"/>
+    <path d="${land}" fill="#EDEAE3" stroke="#C9C6BE" stroke-width=".5"/>
+    <rect x="${bx}" y="${by}" width="${Math.max(2.5, bw)}" height="${Math.max(2.5, bh)}"
+      fill="#DC2626" fill-opacity=".22" stroke="#DC2626" stroke-width="1"/>
+    <text x="${IW/2}" y="${IH-3}" text-anchor="middle" font-size="6" fill="#888"
+      font-family="Sora,sans-serif">Indian subcontinent</text>
+  </g>`;
+}
+
 function reportMapSVG(rings, rows){
   if (!region || !region.cells || !region.cells.length) return '';
   const W = 560, H = 380, PAD = 14;
@@ -498,6 +529,7 @@ function reportMapSVG(rings, rows){
       <g clip-path="url(#rgnclip)">${cellSvg}</g>
       <path d="${outline}" fill="none" stroke="#111" stroke-width="1.3"
             stroke-linejoin="round"/>
+      ${locatorInset(rings, [x0, y0, x1, y1], W, H)}
     </svg>
     <div class="rmapleg"><span class="rmapttl">Records per ${cellSize.toFixed(2)}° cell</span>${legend}</div>
     <p class="rmapnote">Grid cells shaded by number of georeferenced occurrence

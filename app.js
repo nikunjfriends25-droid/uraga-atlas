@@ -876,9 +876,11 @@ function drawDock(totalRecords, clusterCount){
   }
   box.insertAdjacentHTML('beforeend', '<div class="srcnote">IUCN Red List · GBIF · iNaturalist</div>');
   const clr = document.createElement('div');
-  clr.className = 'hollow';
-  clr.innerHTML = '<button class="link">Clear selection ×</button>';
-  clr.querySelector('button').onclick = () => selectSpecies(picked);
+  clr.className = 'recbtns';
+  clr.innerHTML = `<button class="rgnpdf recexport">Export PDF</button>
+    <button class="link">Clear selection ×</button>`;
+  clr.querySelector('.recexport').onclick = e => makeSpeciesReport(picked, e.currentTarget);
+  clr.querySelector('.link').onclick = () => selectSpecies(picked);
   box.appendChild(clr);
 }
 

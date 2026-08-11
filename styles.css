@@ -571,25 +571,27 @@ body:not(.rgnclosed) #report.on{right:312px}
   font-variant-numeric:tabular-nums}
 .tree .tleaf{width:auto}
 
-/* branch connector lines. A child box carries the vertical guide as a left
-   border; each direct child gets a short horizontal tick to its row. Root-level
-   branches sit in .tree (no box), so they carry no line — as they should. */
+/* branch connector lines. Each child draws its OWN vertical guide segment
+   (::before) plus a horizontal tick (::after). The LAST child's segment stops
+   at its tick, so the line ends exactly at the last row — for leaves and
+   expanded branches alike. Earlier this was a continuous border on the child
+   box with the tail masked out, but the mask failed wherever a row had its own
+   background (the selected species). Per-child segments have nothing to mask.
+   Root-level branches sit directly in .tree (no box) and carry no line. */
 .tbranch{display:flex;flex-direction:column;gap:1px}
 .tchildren{display:flex;flex-direction:column;gap:1px;position:relative;
-  margin-left:7px;padding-left:11px;
-  border-left:1px solid color-mix(in srgb,var(--muted) 32%,transparent)}
+  margin-left:7px;padding-left:11px}
 .tchildren > .tbranch,
-.tchildren > .tbranch > .tnode,
 .tchildren > .tleaf{position:relative}
-.tchildren > .tbranch > .tnode::before,
-.tchildren > .tleaf::before{content:"";position:absolute;left:-11px;top:14px;
-  width:8px;height:1px;background:color-mix(in srgb,var(--muted) 32%,transparent)}
-/* the guide is a border on the whole child box, so under the LAST child it runs
-   past the row — mask that tail (below its tick) with the panel background so
-   the line ends exactly at the last child. */
-.tchildren > .tbranch:last-child::after,
-.tchildren > .tleaf:last-child::after{content:"";position:absolute;left:-12px;
-  top:15px;bottom:0;width:3px;background:var(--panel)}
+.tchildren > .tbranch::before,
+.tchildren > .tleaf::before{content:"";position:absolute;left:-11px;top:0;
+  width:1px;height:calc(100% + 1px);            /* overlap the 1px row gap */
+  background:color-mix(in srgb,var(--muted) 34%,transparent)}
+.tchildren > .tbranch:last-child::before,
+.tchildren > .tleaf:last-child::before{height:14px}   /* stop at the tick */
+.tchildren > .tbranch::after,
+.tchildren > .tleaf::after{content:"";position:absolute;left:-11px;top:14px;
+  width:8px;height:1px;background:color-mix(in srgb,var(--muted) 34%,transparent)}
 
 /* ── busy indicator (live fetches take a few seconds) ──── */
 .busy{position:absolute;top:50%;left:calc(50% + var(--busyshift,0px));
@@ -694,3 +696,22 @@ body:not(.rgnclosed) #report.on{right:312px}
 .splink:hover{text-decoration:underline;text-decoration-thickness:.6pt}
 .rimg .splink{display:inline-block}
 @media print{.splink{color:inherit;text-decoration:none}}
+
+/* full-record Export button row */
+.recbtns{display:flex;align-items:center;gap:10px;margin-top:14px}
+.recbtns .recexport{padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700}
+.recbtns .link{margin-left:auto}
+
+/* species-report photo strip + AI cards (print) */
+@media print{
+  .spphotos{display:flex;gap:5pt;flex-wrap:wrap}
+  .spphotos img{width:80pt;height:80pt;object-fit:cover;border-radius:3pt}
+  .raicard{border-left:2.5pt solid #D97706;padding:2pt 0 2pt 8pt;margin:0 0 7pt}
+  .raicard h5{margin:0 0 2pt;font-size:9pt}
+  .raicard p{margin:0;font-size:8.5pt;line-height:1.5;color:#333}
+}
+.spphotos{display:flex;gap:6px;flex-wrap:wrap}
+.spphotos img{width:84px;height:84px;object-fit:cover;border-radius:8px}
+.raicard{border-left:2.5px solid #D97706;padding:2px 0 2px 9px;margin:0 0 8px}
+.raicard h5{margin:0 0 3px;font-size:11px;color:#111}
+.raicard p{margin:0;font-size:10px;line-height:1.55;color:#333}
