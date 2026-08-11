@@ -349,36 +349,44 @@ function buildTree(list){
     (node.species || (node.species = [])).push(sp);
   });
 
-  const render1 = (node, depth, path) => {
-    const key = path;
-    const open = openNodes.has(key);
+  // Nested containers (a branch = its header row + a `.tchildren` box) so the
+  // connector lines are pure CSS: `.tchildren` carries the vertical guide as a
+  // left border, and each child a short horizontal tick. Indentation comes from
+  // the nesting, not inline padding.
+  const makeNode = (node, path) => {
+    const open = openNodes.has(path);
+    const branch = document.createElement('div');
+    branch.className = 'tbranch';
     const row = document.createElement('button');
     row.className = 'tnode';
-    row.style.paddingLeft = (8 + depth * 11) + 'px';
     row.setAttribute('aria-expanded', open);
     row.innerHTML = `<span class="tcar">${open ? '⌄' : '›'}</span>
       <span class="tname">${node.name}</span>
       <span class="trank">${node.rank}</span>
       <span class="tn">${fmt(node.n)}</span>`;
     row.onclick = () => {
-      open ? openNodes.delete(key) : openNodes.add(key);
+      open ? openNodes.delete(path) : openNodes.add(path);
       render();
     };
-    wrap.appendChild(row);
-    if (!open) return;
-    [...node.kids.values()]
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .forEach(k => render1(k, depth + 1, key + '/' + k.name));
-    (node.species || []).sort((a, b) => a.sci.localeCompare(b.sci)).forEach(sp => {
-      const r = speciesRow(sp);
-      r.classList.add('tleaf');
-      r.style.marginLeft = (8 + (depth + 1) * 11) + 'px';
-      wrap.appendChild(r);
-    });
+    branch.appendChild(row);
+    if (open){
+      const kids = document.createElement('div');
+      kids.className = 'tchildren';
+      [...node.kids.values()]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(k => kids.appendChild(makeNode(k, path + '/' + k.name)));
+      (node.species || []).sort((a, b) => a.sci.localeCompare(b.sci)).forEach(sp => {
+        const r = speciesRow(sp);
+        r.classList.add('tleaf');
+        kids.appendChild(r);
+      });
+      branch.appendChild(kids);
+    }
+    return branch;
   };
   [...root.kids.values()]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .forEach(k => render1(k, 0, k.name));
+    .forEach(k => wrap.appendChild(makeNode(k, k.name)));
   return wrap;
 }
 
@@ -1106,8 +1114,20 @@ function render(){
   if (!DATA) return;
   hideTip();
   $('#rc2').classList.remove('on');
+  // buildPanel() recreates #pbody, so clicking a tree node or a filter would
+  // otherwise jump the panel back to the top. Preserve the scroll positions of
+  // both the panel and the inner tree across the rebuild.
+  const pb = $('#pbody');
+  const pbTop = pb ? pb.scrollTop : 0;
+  const trOld = pb && pb.querySelector('.tree');
+  const trTop = trOld ? trOld.scrollTop : 0;
   buildPanel(); drawMap(); drawRegion(); drawLegend();
   if (typeof paintRegionPanel === 'function' && rIndex) paintRegionPanel();
+  if (pb){
+    pb.scrollTop = pbTop;
+    const trNew = pb.querySelector('.tree');
+    if (trNew) trNew.scrollTop = trTop;
+  }
   fitControls();
 }
 

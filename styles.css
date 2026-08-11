@@ -571,6 +571,19 @@ body:not(.rgnclosed) #report.on{right:312px}
   font-variant-numeric:tabular-nums}
 .tree .tleaf{width:auto}
 
+/* branch connector lines. A child box carries the vertical guide as a left
+   border; each direct child gets a short horizontal tick to its row. Root-level
+   branches sit in .tree (no box), so they carry no line — as they should. */
+.tbranch{display:flex;flex-direction:column;gap:1px}
+.tchildren{display:flex;flex-direction:column;gap:1px;position:relative;
+  margin-left:7px;padding-left:11px;
+  border-left:1px solid color-mix(in srgb,var(--muted) 32%,transparent)}
+.tchildren > .tbranch > .tnode,
+.tchildren > .tleaf{position:relative}
+.tchildren > .tbranch > .tnode::before,
+.tchildren > .tleaf::before{content:"";position:absolute;left:-11px;top:14px;
+  width:8px;height:1px;background:color-mix(in srgb,var(--muted) 32%,transparent)}
+
 /* ── busy indicator (live fetches take a few seconds) ──── */
 .busy{position:absolute;top:50%;left:calc(50% + var(--busyshift,0px));
   transform:translate(-50%,-50%);z-index:7;display:flex;flex-direction:column;
