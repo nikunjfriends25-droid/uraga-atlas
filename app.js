@@ -704,15 +704,34 @@ function drawSpeciesMap(){
   clusterLayer.clearLayers();
   pointLayer.clearLayers();
   const pts = live ? live.points : [];
+  // Records at the SAME coordinate stack into one dot — a species known from a
+  // single locality can have many records at one point (Cyrtodactylus
+  // bhupathyi: 6 records, 1 location). Group coincident records so the map
+  // shows one marker carrying the count, rather than looking like a single
+  // record when there are several.
+  const groups = new Map();
   pts.forEach(rec => {
-    const marine = rec.src === 'OBIS';
-    const c = L.circleMarker([rec.lat, rec.lon], {
-      radius: 5, weight: 1.2, color: '#fff', opacity: .85,
-      // OBIS records are drawn in a distinct blue so a merged marine map shows
-      // at a glance which records GBIF did not have
+    const key = rec.lat.toFixed(4) + ',' + rec.lon.toFixed(4);
+    let g = groups.get(key);
+    if (!g){ g = {lat: rec.lat, lon: rec.lon, recs: []}; groups.set(key, g); }
+    g.recs.push(rec);
+  });
+  window.__locations = groups.size;
+  groups.forEach(g => {
+    const n = g.recs.length;
+    const marine = g.recs[0].src === 'OBIS';
+    const r = n > 1 ? Math.min(11, 5 + Math.sqrt(n) * 1.4) : 5;
+    const c = L.circleMarker([g.lat, g.lon], {
+      radius: r, weight: 1.2, color: '#fff', opacity: .85,
       fillColor: marine ? '#2563EB' : '#EF4444', fillOpacity: .9, className: 'occpt',
     });
-    c.on('click', ev => { L.DomEvent.stopPropagation(ev); showRecord(rec, ev.originalEvent); });
+    if (n > 1){
+      c.bindTooltip(`<b>${fmt(n)}</b> records at this location`,
+        {direction: 'top', className: 'clutip'});
+    }
+    // click shows the first record, noting how many share the spot
+    c.on('click', ev => { L.DomEvent.stopPropagation(ev);
+      showRecord(g.recs[0], ev.originalEvent, n); });
     pointLayer.addLayer(c);
   });
   $('#r-occ').textContent = fmt((live && live.total) ?? picked.n);
@@ -789,7 +808,7 @@ function hideTip(){
   clusterLayer.eachLayer(l => l.closeTooltip && l.closeTooltip());
 }
 
-function showRecord(rec, ev){
+function showRecord(rec, ev, coincident){
   const el = $('#rc2');
   const basis = (rec.basis || '').replace(/_/g,' ').toLowerCase();
   const rows = [
@@ -804,6 +823,7 @@ function showRecord(rec, ev){
   el.innerHTML = `<button class="x" aria-label="Close">×</button>
     <h5>Occurrence record</h5>
     <div class="sci">${picked.sci}</div>
+    ${coincident > 1 ? `<div class="coincident">${fmt(coincident)} records share this exact coordinate — showing the first.</div>` : ''}
     <dl>${rows.map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
     <div class="gk">${rec.src === 'OBIS' ? 'OBIS' : 'GBIF'} record ${rec.key || '—'}
       · fetched live from ${rec.src === 'OBIS' ? 'OBIS (marine)' : 'GBIF'}</div>`;
@@ -845,7 +865,8 @@ function drawDock(totalRecords, clusterCount){
   $('#dockttl').textContent = 'Species record';
   const n = live ? live.points.length : 0;
   $('#dockhint').innerHTML = live
-    ? `${fmt(n)} of ${fmt(live.total ?? picked.n)} records plotted`
+    ? `${fmt(n)} of ${fmt(live.total ?? picked.n)} records plotted${
+        (window.__locations && window.__locations < n) ? ` · ${fmt(window.__locations)} location${window.__locations === 1 ? '' : 's'}` : ''}`
       + (live.obis ? ` · <b>+${fmt(live.obis)}</b> from OBIS` : '')
       + (live.errors.length
         ? ` · <span class="warn">${live.errors.join(', ')} unavailable</span>` : '')
