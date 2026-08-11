@@ -252,7 +252,7 @@ text{font-family:"Sora",system-ui,sans-serif;font-variant-numeric:tabular-nums;
 .rec{max-width:1180px;margin:0 auto;padding:16px 18px 26px;
   display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start}
 .gal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.gal img.hero{grid-column:1/-1;width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}
+.gal img.hero{grid-column:1/-1;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:var(--panel2)}
 .gal img.th{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;
   opacity:.72;transition:.14s}
 .gal img.th:hover{opacity:1}
@@ -644,9 +644,15 @@ body:not(.rgnclosed) #report.on{right:312px}
 #report h2{font-size:9.5pt;letter-spacing:.09em;margin:0 0 6pt;
   padding-bottom:3pt;border-bottom:1px solid #d8d5ce;color:#111;font-weight:700}
 .rhead{margin-bottom:12pt}
-.rstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10pt;margin:0 0 10pt}
-.rstats dt{font-size:7pt;line-height:1.35;min-height:2.7em}
-.rstats dd{font-size:15pt;line-height:1.1}
+.rstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin:0 0 10pt}
+.rstats div{border:1px solid #e6e3dc;border-radius:5pt;padding:6pt 8pt 7pt;background:#faf9f7;
+  display:flex;flex-direction:column;min-width:0}
+.rstats dt{font-size:6.6pt;text-transform:uppercase;letter-spacing:.06em;color:#7a756c;
+  line-height:1.25;margin:0 0 3pt}
+.rstats dd{font-size:12.5pt;font-weight:700;line-height:1.15;margin:0;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.rstats .rsrc{margin-top:auto;padding-top:3pt;font-size:6pt;color:#a29c92;
+  text-transform:uppercase;letter-spacing:.04em}
 .rsec .rstats{margin-bottom:8pt}
 .rtable{margin-top:2pt}
 .rtable th{padding:3pt 4pt;background:#faf9f7}
@@ -701,20 +707,31 @@ body:not(.rgnclosed) #report.on{right:312px}
 .recbtns{display:flex;align-items:center;gap:10px;margin-top:14px}
 .recbtns .recexport{padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700}
 .recbtns .link{margin-left:auto}
+/* Export button inside the full record header */
+.recexport-full{margin-top:12px;padding:9px 15px;border-radius:9px;font-size:12px;font-weight:700}
+.recexport-full:disabled{opacity:.65;cursor:progress}
 
-/* species-report photo strip + AI cards (print) */
+/* India's official boundary, always drawn over the basemap. Coloured via CSS so
+   it reads on both pale and dark tiles; inline stroke attrs from Leaflet lose to
+   these rules. */
+.india-outline{stroke:#4a3c24;stroke-width:1.2;stroke-opacity:.9;fill:none}
+body.basedark .india-outline{stroke:#e7d7ae;stroke-opacity:.85}
+
+/* species-report photo strip + AI cards (print)
+   NB scoped under .spphotos: an unscoped .sprow collides with the species-list
+   row of the same name and shrank these thumbnails to 34px. */
 .spphotos{display:flex;flex-direction:column;gap:6px}
-.sphero{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;display:block}
-.sprow{display:flex;gap:6px}
-.sprow img{flex:1;min-width:0;aspect-ratio:1;object-fit:cover;border-radius:6px}
+.spphotos .sphero{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;display:block;background:#f1efe9}
+.spphotos .sprow{display:flex;gap:6px}
+.spphotos .sprow img{flex:1;min-width:0;aspect-ratio:1;object-fit:cover;border-radius:6px;background:#f1efe9}
 .raicard{border-left:2.5px solid #D97706;padding:2px 0 2px 9px;margin:0 0 8px}
 .raicard h5{margin:0 0 3px;font-size:11px;color:#111}
 .raicard p{margin:0;font-size:10px;line-height:1.55;color:#333}
 @media print{
   .spphotos{gap:5pt;break-inside:avoid}
-  .sphero{aspect-ratio:16/9;border-radius:3pt}
-  .sprow{gap:5pt}
-  .sprow img{border-radius:3pt}
+  .spphotos .sphero{border-radius:3pt}
+  .spphotos .sprow{gap:5pt}
+  .spphotos .sprow img{border-radius:3pt}
   .raicard{border-left:2.5pt solid #D97706;padding:2pt 0 2pt 8pt;margin:0 0 7pt}
   .raicard h5{margin:0 0 2pt;font-size:9pt}
   .raicard p{margin:0;font-size:8.5pt;line-height:1.5;color:#333}

@@ -204,6 +204,7 @@ async function makeReport(btn){
   }
   const rings = await coastline();
   await borders();
+  await india();
   const restricted = await sectionRestricted(rows);   // needs spread.json
   openReport(reportHTML(rows, thumbs, rings, restricted));
   await imagesSettled((n, total) => {
@@ -389,7 +390,7 @@ function placeholder(){
  * on blank paper is unreadable — plus the region outline and the same heat
  * cells and colour ramp the screen map uses, so the two agree.
  */
-let _rings = null, _borders = null;
+let _rings = null, _borders = null, _india = null;
 async function coastline(){
   if (_rings) return _rings;
   try {
@@ -403,6 +404,16 @@ async function borders(){
     _borders = (await fetch('data/borders.json', DATA_FETCH).then(r => r.json())).lines;
   } catch { _borders = []; }
   return _borders;
+}
+// India's official boundary (full claimed extent), drawn as an emphasised line
+// over the reference ADM1 borders so the report maps show the same outline as
+// the interactive map.
+async function india(){
+  if (_india) return _india;
+  try {
+    _india = (await fetch('data/india.json', DATA_FETCH).then(r => r.json())).lines;
+  } catch { _india = []; }
+  return _india;
 }
 
 
@@ -511,6 +522,8 @@ function reportMapSVG(rings, rows){
     .map(r => path(r)).join(' ');
   const borderSvg = (_borders || []).filter(r => r.length > 1 && inView(r))
     .map(r => `<path d="${path(r)}" fill="none" stroke="#C9C6BE" stroke-width=".5"/>`).join('');
+  const indiaSvg = (_india || []).filter(r => r.length > 1 && inView(r))
+    .map(r => `<path d="${path(r)}" fill="none" stroke="#6b5836" stroke-width="1"/>`).join('');
 
   const cellSvg = cells.map(c => {
     const lon = c.kx * cellSize, lat = c.ky * cellSize;
@@ -536,7 +549,7 @@ function reportMapSVG(rings, rows){
       <defs><clipPath id="rgnclip"><path d="${outline}"/></clipPath></defs>
       <rect width="${W}" height="${H}" fill="#F3F1EC"/>
       <path d="${land}" fill="#FFFFFF" stroke="#B9B5AC" stroke-width=".7"/>
-      ${borderSvg}
+      ${borderSvg}${indiaSvg}
       <g clip-path="url(#rgnclip)">${cellSvg}</g>
       <path d="${outline}" fill="none" stroke="#111" stroke-width="1.3"
             stroke-linejoin="round"/>

@@ -107,6 +107,15 @@ const map = L.map('map', {
   worldCopyJump: true,
 }).fitBounds([[P.minLat, P.minLon], [P.maxLat, P.maxLon]]);
 
+// India's official boundary (full claimed extent — J&K and Arunachal included),
+// drawn over the basemap so the country outline is unambiguous whichever tile
+// provider is active. Added before the data layers so it sits beneath points.
+const indiaLayer   = L.layerGroup().addTo(map);
+function drawIndia(gj){
+  indiaLayer.clearLayers();
+  L.geoJSON(gj, { interactive: false, className: 'india-outline', fill: false }).addTo(indiaLayer);
+}
+
 const clusterLayer = L.layerGroup().addTo(map);
 const pointLayer   = L.layerGroup().addTo(map);
 // featureGroup, not layerGroup: only featureGroup exposes getBounds(), which
@@ -193,12 +202,14 @@ function clusterRadius(n, nmax, zoom, cellDegrees){
 (async function init(){
   try {
     // basemap.json is no longer fetched — the coastline comes from the tiles
-    const [clusters, index] = await Promise.all([
+    const [clusters, index, india] = await Promise.all([
       fetch('data/clusters.json', DATA_FETCH).then(r => r.json()),
       fetch('data/index.json', DATA_FETCH).then(r => r.json()),
+      fetch('data/india.geojson', DATA_FETCH).then(r => r.json()).catch(() => null),
     ]);
     DATA = clusters; INDEX = index;
     setBasemap(state.base);
+    if (india) drawIndia(india);
     state.z = levelFor(map.getZoom());
     render();
     initRegionPanel();            // report.js — loads its own index
@@ -953,6 +964,7 @@ function drawRecord(){
         <div class="ln">${(d && d.lineage.join(' · ')) || sp.fam}</div>
         <div class="badges"><span class="bdg" style="--c:${c}">${IUNAME[sp.iucn]}</span>
           ${d && d.venom ? `<span class="venom">⚠ Venomous — ${d.venom.l}</span>` : ''}</div>
+        <button class="rgnpdf recexport-full">Export species PDF ↧</button>
       </div>
       <div class="secttl" style="margin-top:16px">Nomenclature</div>
       <div class="nom">
@@ -989,6 +1001,15 @@ function drawRecord(){
     </div>`;
   $('#cards').appendChild(wrap);
 
+  wrap.querySelector('.recexport-full')
+     ?.addEventListener('click', e => makeSpeciesReport(picked, e.currentTarget));
+
+  // Respect each photo's orientation: size the hero frame to the image's own
+  // aspect ratio (clamped) so object-fit:cover shows the whole photo instead of
+  // hard-cropping a portrait into a square.
+  const fitHero = () => { const h = wrap.querySelector('#gh');
+    if (h && h.naturalWidth) h.style.aspectRatio = Math.max(0.62, Math.min(1.85, h.naturalWidth / h.naturalHeight)); };
+
   function paintSeg(){
     const keys = d ? SEGS[seg][1].filter(k => d.ai[k]) : [];
     wrap.querySelector('#ai').innerHTML = keys.length
@@ -1011,6 +1032,7 @@ function drawRecord(){
       const hi = Number(hero.dataset.i), ti = Number(im.dataset.i);
       hero.src = photos[ti].url; hero.dataset.i = ti;
       im.src = photos[hi].url;   im.dataset.i = hi;
+      fitHero();
       const p = photos[ti];
       const c = wrap.querySelector('#cred');
       if (c) c.textContent = [p.credit, p.licence ? p.licence.toUpperCase() : '']
@@ -1018,7 +1040,10 @@ function drawRecord(){
     };
   });
   const hero = wrap.querySelector('#gh');
-  if (hero) hero.onclick = () => openLightbox(photos, Number(hero.dataset.i), sp.sci);
+  if (hero){
+    hero.onclick = () => openLightbox(photos, Number(hero.dataset.i), sp.sci);
+    hero.addEventListener('load', fitHero); fitHero();
+  }
 }
 
 /* ── full-screen photo viewer ─────────────────────────── */

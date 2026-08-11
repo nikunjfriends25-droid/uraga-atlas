@@ -39,6 +39,9 @@ function speciesMapSVG(sp, points, range, rings){
   const borderSvg = (typeof _borders !== 'undefined' && _borders ? _borders : [])
     .filter(r => r.length > 1 && inView(r))
     .map(r => `<path d="${path(r)}" fill="none" stroke="#C9C6BE" stroke-width=".5"/>`).join('');
+  const indiaSvg = (typeof _india !== 'undefined' && _india ? _india : [])
+    .filter(r => r.length > 1 && inView(r))
+    .map(r => `<path d="${path(r)}" fill="none" stroke="#6b5836" stroke-width="1"/>`).join('');
   const rangeSvg = polys.map(poly => poly.map(ring =>
     `<path d="${path(ring)}" fill="#38A169" fill-opacity=".16" stroke="#2F855A" stroke-width=".8"/>`
   ).join('')).join('');
@@ -51,7 +54,7 @@ function speciesMapSVG(sp, points, range, rings){
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Distribution of ${esc(sp.sci)}">
       <rect width="${W}" height="${H}" fill="#F3F1EC"/>
       <path d="${land}" fill="#FFFFFF" stroke="#B9B5AC" stroke-width=".7"/>
-      ${borderSvg}
+      ${borderSvg}${indiaSvg}
       ${rangeSvg}${ptsSvg}
       ${locatorInset(rings, [x0, y0, x1, y1], W, H)}
     </svg>
@@ -113,7 +116,8 @@ function speciesReportHTML(sp, d, got, range, rings, photos){
     </div></section>` : ''}
 
   <dl class="rstats">
-    ${facts.map(f => `<div><dt>${f[0]}</dt><dd style="font-size:12pt">${esc(String(f[1]))}</dd></div>`).join('')}
+    ${facts.map(f => `<div><dt>${f[0]}</dt><dd>${esc(String(f[1]))}</dd>${
+      f[2] ? `<div class="rsrc">${esc(f[2])}</div>` : ''}</div>`).join('')}
   </dl>
 
   ${speciesMapSVG(sp, got && got.points, range, rings)}
@@ -182,10 +186,15 @@ async function makeSpeciesReport(sp, btn){
   }
   const rings = await coastline();
   await borders();
+  await india();
   const photos = ((got && got.photos) || []).filter(p => usableLicence(p.licence));
 
   openReport(speciesReportHTML(sp, d, got, range, rings, photos), sp.sci);
   setPageFurniture(sp.sci);           // running head shows the species
   await imagesSettled();
+  // match the hero frame to the photo's orientation (no hard portrait crop)
+  const h = document.querySelector('#report .sphero');
+  if (h && h.naturalWidth)
+    h.style.aspectRatio = Math.max(0.62, Math.min(1.85, h.naturalWidth / h.naturalHeight));
   if (btn){ btn.disabled = false; btn.textContent = label; }
 }
