@@ -529,10 +529,11 @@ function reportHTML(rows, thumbs, rings, restricted){
   const body = rows.map((r, i) => {
     const [id, n, sci, com, fam, grp, cls, iucn] = r;
     const t = thumbs.get(id);
+    // species name and thumbnail link into Uraga (?sp=id) — clickable in the PDF
     return `<tr>
       <td class="rnum">${i + 1}</td>
-      <td class="rimg">${t ? `<img src="${t.url}" alt="">` : '<span class="noimg"></span>'}</td>
-      <td><i>${esc(sci)}</i><br><span class="rcom">${esc(com) || '—'}</span></td>
+      <td class="rimg">${t ? spLink(id, `<img src="${t.url}" alt="">`) : '<span class="noimg"></span>'}</td>
+      <td>${spLink(id, `<i>${esc(sci)}</i>`)}<br><span class="rcom">${esc(com) || '—'}</span></td>
       <td>${esc(fam)}</td>
       <td><span class="rst rst-${iucn || 'DD'}">${iucn || 'DD'}</span> ${esc(IUNAME[iucn] || 'Data Deficient')}</td>
       <td class="rnumr">${fmt(n)}</td>

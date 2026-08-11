@@ -66,6 +66,14 @@ const DATA_FETCH = {cache: 'no-cache'};
 
 const $ = s => document.querySelector(s);
 const fmt = n => (n ?? 0).toLocaleString('en-IN');
+// Deep link to a species. Absolute so links printed into a PDF resolve, and
+// used both by the report and by shareable ?sp= URLs.
+const speciesURL = id => `${location.origin}${location.pathname}?sp=${id}`;
+const spLink = (id, inner) =>
+  `<a class="splink" href="${speciesURL(id)}" target="_blank" rel="noopener">${inner}</a>`;
+function setSpeciesURL(id){
+  history.replaceState(null, '', id ? `?sp=${id}` : location.pathname);
+}
 const IUC = {LC:'--lc', NT:'--nt', VU:'--vu', EN:'--en', CR:'--cr', DD:'--dd'};
 const IUNAME = {LC:'Least Concern', NT:'Near Threatened', VU:'Vulnerable',
                 EN:'Endangered', CR:'Critically Endangered', DD:'Data Deficient'};
@@ -194,6 +202,12 @@ function clusterRadius(n, nmax, zoom, cellDegrees){
     state.z = levelFor(map.getZoom());
     render();
     initRegionPanel();            // report.js — loads its own index
+    // ?sp=<id> opens that species directly (shared links, report hyperlinks)
+    const spId = new URLSearchParams(location.search).get('sp');
+    if (spId){
+      const sp = INDEX.find(s => String(s.id) === spId);
+      if (sp){ selectSpecies(sp); full = true; $('#dock').classList.add('full'); }
+    }
   } catch (e) {
     $('#boot').innerHTML =
       `<p>Could not load the dataset.</p><p class="dim">${e.message}</p>`;
@@ -412,9 +426,11 @@ async function selectSpecies(sp){
   if (picked && picked.id === sp.id){
     picked = detail = live = null; full = false;
     $('#dock').classList.remove('full');
+    setSpeciesURL(null);
     return render();
   }
   picked = sp; detail = null; live = null; state.shown = state.shown || 60;
+  setSpeciesURL(sp.id);
   render();                                  // paint the selected state immediately
 
   // our own record — static JSON

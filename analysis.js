@@ -107,7 +107,7 @@ function sectionVenom(rows, byId){
       needs immediate hospital treatment and the appropriate antivenom.</p>
     <table class="rtable"><thead><tr><th>Species</th><th>Common name</th>
       <th>Venom</th><th>Records</th></tr></thead><tbody>
-      ${ven.map(([r, sp]) => `<tr><td><i>${esc(r[2])}</i></td>
+      ${ven.map(([r, sp]) => `<tr><td>${spLink(r[0], `<i>${esc(r[2])}</i>`)}</td>
         <td>${esc(r[3]) || '—'}</td><td>${esc(sp.ven)}</td>
         <td class="rnumr">${fmt(r[1])}</td></tr>`).join('')}
     </tbody></table></section>`;
@@ -129,7 +129,7 @@ function sectionConcern(rows, byId){
       <th>Common name</th><th>Assessed</th><th>Records</th></tr></thead><tbody>
       ${t.map(r => { const sp = byId.get(r[0]) || {};
         return `<tr><td><span class="rst rst-${r[7]}">${r[7]}</span></td>
-          <td><i>${esc(r[2])}</i></td><td>${esc(r[3]) || '—'}</td>
+          <td>${spLink(r[0], `<i>${esc(r[2])}</i>`)}</td><td>${esc(r[3]) || '—'}</td>
           <td class="rnum">${sp.yr || '—'}</td>
           <td class="rnumr">${fmt(r[1])}</td></tr>`; }).join('')}
     </tbody></table></section>`;
@@ -203,7 +203,7 @@ async function sectionRestricted(rows){
       occurs — under-surveyed species will appear more restricted than they are.</p>
     <table class="rtable"><thead><tr><th>Species</th><th>Common name</th>
       <th>Status</th><th>Districts</th></tr></thead><tbody>
-      ${r.map(([x, n]) => `<tr><td><i>${esc(x[2])}</i></td><td>${esc(x[3]) || '—'}</td>
+      ${r.map(([x, n]) => `<tr><td>${spLink(x[0], `<i>${esc(x[2])}</i>`)}</td><td>${esc(x[3]) || '—'}</td>
         <td><span class="rst rst-${x[7] || 'DD'}">${x[7] || 'DD'}</span></td>
         <td class="rnumr">${n}</td></tr>`).join('')}
     </tbody></table></section>`;

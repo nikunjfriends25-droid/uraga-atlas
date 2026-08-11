@@ -688,3 +688,9 @@ body:not(.rgnclosed) #report.on{right:312px}
 .rcredlist i{color:#333}
 @media (max-width:700px){ .rcredlist{columns:1} }
 @media print{ .rcred{break-inside:auto} .rcredlist{columns:2} }
+
+/* species deep-links in the report — read as normal text, clickable in the PDF */
+.splink{color:inherit;text-decoration:none}
+.splink:hover{text-decoration:underline;text-decoration-thickness:.6pt}
+.rimg .splink{display:inline-block}
+@media print{.splink{color:inherit;text-decoration:none}}
