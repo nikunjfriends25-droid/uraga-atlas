@@ -111,7 +111,7 @@ function speciesReportHTML(sp, d, got, range, rings, photos){
 
   ${photos.length ? `<section class="rmap"><div class="spphotos">
       <img class="sphero" src="${photos[0].url}" alt="${esc(sp.sci)}">
-      ${photos.length > 1 ? `<div class="sprow">${photos.slice(1, 4).map(p =>
+      ${photos.length > 1 ? `<div class="spstrip">${photos.slice(1, 4).map(p =>
         `<img src="${p.url}" alt="">`).join('')}</div>` : ''}
     </div></section>` : ''}
 

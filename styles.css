@@ -722,16 +722,16 @@ body.basedark .india-outline{stroke:#e7d7ae;stroke-opacity:.85}
    row of the same name and shrank these thumbnails to 34px. */
 .spphotos{display:flex;flex-direction:column;gap:6px}
 .spphotos .sphero{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;display:block;background:#f1efe9}
-.spphotos .sprow{display:flex;gap:6px}
-.spphotos .sprow img{flex:1;min-width:0;aspect-ratio:1;object-fit:cover;border-radius:6px;background:#f1efe9}
+.spstrip{display:flex;gap:6px;padding:0;border:0}
+.spstrip img{flex:1;min-width:0;width:auto;height:auto;aspect-ratio:1;object-fit:cover;border-radius:6px;background:#f1efe9}
 .raicard{border-left:2.5px solid #D97706;padding:2px 0 2px 9px;margin:0 0 8px}
 .raicard h5{margin:0 0 3px;font-size:11px;color:#111}
 .raicard p{margin:0;font-size:10px;line-height:1.55;color:#333}
 @media print{
   .spphotos{gap:5pt;break-inside:avoid}
   .spphotos .sphero{border-radius:3pt}
-  .spphotos .sprow{gap:5pt}
-  .spphotos .sprow img{border-radius:3pt}
+  .spstrip{gap:5pt}
+  .spstrip img{border-radius:3pt}
   .raicard{border-left:2.5pt solid #D97706;padding:2pt 0 2pt 8pt;margin:0 0 7pt}
   .raicard h5{margin:0 0 2pt;font-size:9pt}
   .raicard p{margin:0;font-size:8.5pt;line-height:1.5;color:#333}
