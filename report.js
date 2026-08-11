@@ -431,6 +431,7 @@ function reportMapSVG(rings, rows){
     x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]);
     y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]);
   }));
+  const spanDeg = Math.max(x1 - x0, y1 - y0);   // region extent, before padding
   const mx = (x1 - x0) * 0.12 + 0.05, my = (y1 - y0) * 0.12 + 0.05;
   x0 -= mx; x1 += mx; y0 -= my; y1 += my;
   // equirectangular, longitude compressed by cos(lat) so shapes stay sane
@@ -444,14 +445,22 @@ function reportMapSVG(rings, rows){
 
   // only the filtered species contribute, so the map matches the checklist
   const keep = new Set(rows.map(r => r[5] + '|' + (r[7] || 'DD')));
-  const target = region.cell;
-  const counts = [];
-  const cells = region.cells.map(c => {
+  // The stored grid is fine (adaptive per region); aggregate it to a display
+  // cell that puts ~26 cells across the region, so a small district shows real
+  // detail and a country stays legible.
+  const factor = Math.max(1, Math.round((spanDeg / 26) / region.cell));
+  const cellSize = region.cell * factor;
+  const agg = new Map();
+  region.cells.forEach(c => {
     let n = 0;
     for (const key in c.b) if (keep.has(key)) n += c.b[key];
-    counts.push(n);
-    return {k: c.k, n};
-  }).filter(c => c.n > 0);
+    if (!n) return;
+    const kx = Math.floor(c.k[0] / factor), ky = Math.floor(c.k[1] / factor);
+    const id = kx + ',' + ky;
+    const e = agg.get(id);
+    if (e) e.n += n; else agg.set(id, {kx, ky, n});
+  });
+  const cells = [...agg.values()];
   if (!cells.length) return '';
   const breaks = heatBreaks(cells.map(c => c.n));
 
@@ -463,9 +472,9 @@ function reportMapSVG(rings, rows){
     .map(r => path(r)).join(' ');
 
   const cellSvg = cells.map(c => {
-    const lon = c.k[0] * target, lat = c.k[1] * target;
-    const x = X(lon), y = Y(lat + target);
-    const w = (target * k * s).toFixed(1), h = (target * s).toFixed(1);
+    const lon = c.kx * cellSize, lat = c.ky * cellSize;
+    const x = X(lon), y = Y(lat + cellSize);
+    const w = (cellSize * k * s).toFixed(1), h = (cellSize * s).toFixed(1);
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}"
       fill="${heatColour(c.n, breaks)}" fill-opacity=".85"/>`;
   }).join('');
@@ -483,16 +492,19 @@ function reportMapSVG(rings, rows){
     <h2>Occurrence density</h2>
     <svg viewBox="0 0 ${W} ${H}" role="img"
          aria-label="Occurrence density of reptiles and amphibians in ${region.name}">
+      <defs><clipPath id="rgnclip"><path d="${outline}"/></clipPath></defs>
       <rect width="${W}" height="${H}" fill="#F3F1EC"/>
       <path d="${land}" fill="#FFFFFF" stroke="#C9C6BE" stroke-width=".8"/>
-      ${cellSvg}
+      <g clip-path="url(#rgnclip)">${cellSvg}</g>
       <path d="${outline}" fill="none" stroke="#111" stroke-width="1.3"
             stroke-linejoin="round"/>
     </svg>
-    <div class="rmapleg"><span class="rmapttl">Records per ${target}° cell</span>${legend}</div>
+    <div class="rmapleg"><span class="rmapttl">Records per ${cellSize.toFixed(2)}° cell</span>${legend}</div>
     <p class="rmapnote">Grid cells shaded by number of georeferenced occurrence
-      records falling inside them; the outline is the ${LEVELS[region.lvl].toLowerCase()}
-      boundary. Coastline: Natural Earth. Cells follow the filters applied to this report.</p>
+      records falling inside the ${LEVELS[region.lvl].toLowerCase()} boundary and
+      <b>clipped to it</b> — a cell straddling the border is drawn only where it
+      lies within the region. Cell size adapts to the region's extent. Coastline:
+      Natural Earth. Cells follow the filters applied to this report.</p>
   </section>`;
 }
 

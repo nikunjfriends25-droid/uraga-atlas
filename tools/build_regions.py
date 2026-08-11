@@ -100,8 +100,8 @@ def main(a):
     # grid index and filter key per point, so each region can carry its OWN
     # occurrence grid — a selected region must filter the map exactly, and the
     # corpus grid cannot be clipped to a boundary after the fact
-    kx = np.array([int(r[1] / FINE) for r in rows])
-    ky = np.array([int(r[2] / FINE) for r in rows])
+    lons = [r[1] for r in rows]
+    lats = [r[2] for r in rows]
     spmeta = {r[0]: ((r[1] or 'Other'), (r[2] or 'DD')) for r in db.execute(
         'SELECT s.id, s.grp, i.iucnCategory FROM species s '
         'LEFT JOIN iucnData i ON i.speciesId=s.id')}
@@ -130,20 +130,41 @@ def main(a):
     # query returns [input_index, tree_index] pairs for every hit
     hit = tree.query(pts, predicate='intersects')
     per = collections.defaultdict(collections.Counter)
-    grid = collections.defaultdict(lambda: collections.defaultdict(collections.Counter))
-    dec = collections.defaultdict(collections.Counter)
-    mon = collections.defaultdict(collections.Counter)
+    rpts = collections.defaultdict(list)   # region -> its in-polygon point indices
     for pi, ri in zip(hit[0], hit[1]):
         per[ri][int(sid[pi])] += 1
-        k = bkey[pi]
-        if k:
-            grid[ri][(int(kx[pi]), int(ky[pi]))][k] += 1
-        if yrs[pi]:
-            dec[ri][yrs[pi] // 10 * 10] += 1
-        if mons[pi]:
-            mon[ri][mons[pi]] += 1
+        rpts[ri].append(pi)
     print(f'  {sum(len(v) for v in per.values())} species-region pairs')
-    print(f'  {sum(len(v) for v in grid.values())} region-cell pairs')
+
+    def region_grid(geom, pis):
+        """Grid a region's in-polygon points at a cell size ADAPTED to the
+        region's extent — fine for a small district, coarse for a country — so
+        the map has real detail everywhere and boundary cells stay small
+        (which, with client-side clipping to the polygon, kills the old spill).
+        A cap keeps any single region file bounded."""
+        minx, miny, maxx, maxy = geom.bounds
+        extent = max(maxx - minx, maxy - miny, 1e-6)
+        base = min(0.55, max(0.08, extent / 40))
+
+        def grid_at(cell):
+            g = collections.defaultdict(collections.Counter)
+            for pi in pis:
+                k = bkey[pi]
+                if k:
+                    g[(int(lons[pi] / cell), int(lats[pi] / cell))][k] += 1
+            return g
+
+        g = grid_at(base)
+        while len(g) > 500 and base < 0.55:
+            base = min(0.55, base * 2)
+            g = grid_at(base)
+        dc, mc = collections.Counter(), collections.Counter()
+        for pi in pis:
+            if yrs[pi]:
+                dc[yrs[pi] // 10 * 10] += 1
+            if mons[pi]:
+                mc[mons[pi]] += 1
+        return round(base, 4), g, dc, mc
 
     # Names for the checklist come from the same place the app gets them.
     meta = {r[0]: r for r in db.execute('''
@@ -174,6 +195,7 @@ def main(a):
         species = sorted(
             ([s, n] + list(meta[s][1:]) for s, n in counts.items() if s in meta),
             key=lambda x: x[2])  # scientific name
+        gcell, ggrid, gdec, gmon = region_grid(geom, rpts.get(i, []))
         json.dump({
             'code': code, 'name': name, 'lvl': lvl,
             'country': COUNTRIES[iso], 'parent': parent, 'parentCode': parent_code,
@@ -181,12 +203,12 @@ def main(a):
             # this region's own occurrence grid at FINE degrees, keyed
             # group|status exactly like the corpus levels, so group and status
             # filters stay exact after the map is scoped to the region
-            'cell': FINE,
+            'cell': gcell,
             # collecting effort through time and across the year
-            'dec': dict(sorted(dec.get(i, {}).items())),
-            'mon': dict(sorted(mon.get(i, {}).items())),
+            'dec': dict(sorted(gdec.items())),
+            'mon': dict(sorted(gmon.items())),
             'cells': [{'k': [k[0], k[1]], 'b': dict(b)}
-                      for k, b in sorted(grid.get(i, {}).items())],
+                      for k, b in sorted(ggrid.items())],
             # [speciesId, records, scientific, common, family, group, class, iucn]
             'sp': species,
             'outline': mapping_rings(geom.simplify(SIMPLIFY, preserve_topology=True)),

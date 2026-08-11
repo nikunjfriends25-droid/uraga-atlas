@@ -86,6 +86,9 @@ const state = {grp:new Set(), iucn:new Set(), q:'', z:0, base:'positron',
                view:'heat', nav:'list', breaks:null};
 // set by report.js when an administrative region is selected
 let region = null, regionIds = null;
+// degrees spanned by the cells currently drawn (corpus level, or a selected
+// region's adaptive display size); drawHeatCells/drawBubbles size to it
+let viewCell = 0.55;
 const rangeCache = new Map();
 
 /* ── the map ──────────────────────────────────────────── */
@@ -171,8 +174,8 @@ function heatColour(n, breaks){
  *  Area-proportional would be honest but unreadable across a 1–25,000 range,
  *  so this is sqrt-scaled against the largest cell currently drawn; the label
  *  carries the exact number. */
-function clusterRadius(n, nmax, zoom, level){
-  const spacing = cellDeg(level) * pxPerDeg(zoom);
+function clusterRadius(n, nmax, zoom, cellDegrees){
+  const spacing = cellDegrees * pxPerDeg(zoom);
   const maxR = Math.max(12, Math.min(27, spacing * 0.46));
   const minR = Math.min(9.5, maxR * 0.6);
   return minR + (maxR - minR) * Math.sqrt(n / Math.max(nmax, 1));
@@ -569,18 +572,22 @@ async function fetchLive(sp){
  *  taxonomic-group and status filters remain exact inside a region too.
  */
 function cellsForView(){
-  if (!region || !region.cells) return DATA.levels[LEVEL_KEYS[state.z]];
-  const target = cellDeg(state.z);
-  const factor = Math.max(1, Math.round(target / region.cell));
+  if (!region || !region.cells){
+    viewCell = cellDeg(state.z);
+    return DATA.levels[LEVEL_KEYS[state.z]];
+  }
+  // A selected region carries its own grid at an adaptive fine base. Pick the
+  // display cell from the ACTUAL zoom so zooming in re-grids finer (down to the
+  // stored base), instead of being pinned at the corpus 0.55°.
+  const want = 26 / pxPerDeg(map.getZoom());        // aim for ~26px cells
+  const factor = Math.max(1, Math.round(want / region.cell));
+  viewCell = region.cell * factor;
   const acc = new Map();
   for (const c of region.cells){
     const kx = Math.floor(c.k[0] / factor), ky = Math.floor(c.k[1] / factor);
     const id = kx + ',' + ky;
     let e = acc.get(id);
-    if (!e){
-      e = {x: (kx + 0.5) * target, y: (ky + 0.5) * target, b: {}};
-      acc.set(id, e);
-    }
+    if (!e){ e = {x: (kx + 0.5) * viewCell, y: (ky + 0.5) * viewCell, b: {}}; acc.set(id, e); }
     for (const k in c.b) e.b[k] = (e.b[k] || 0) + c.b[k];
   }
   return [...acc.values()];
@@ -623,7 +630,7 @@ function drawMap(){
 /** One filled rectangle per grid cell. The data IS a grid, so this draws
  *  exactly what we hold — no interpolation, and no overlap to manage. */
 function drawHeatCells(cells, counts){
-  const half = cellDeg(state.z) / 2;
+  const half = viewCell / 2;
   const breaks = state.breaks;
   cells.forEach((c, i) => {
     const n = counts[i];
@@ -634,7 +641,7 @@ function drawHeatCells(cells, counts){
         className: 'heatcell',
       });
     rect.bindTooltip(`<b>${fmt(n)}</b> occurrence record${n === 1 ? '' : 's'}<br>
-      <span class="dim">${cellDeg(state.z)}° cell · click to zoom in</span>`,
+      <span class="dim">${viewCell.toFixed(2)}° cell · click to zoom in</span>`,
       {direction:'top', sticky:true, className:'clutip'});
     rect.on('click', () => map.setView([c.y, c.x],
       Math.min(17, map.getZoom() + 2), {animate:false}));
@@ -647,7 +654,7 @@ function drawBubbles(cells, counts, zoom){
   cells.forEach((c, i) => {
     const n = counts[i];
     if (!n) return;
-    const r = clusterRadius(n, nmax, zoom, state.z);
+    const r = clusterRadius(n, nmax, zoom, viewCell);
     const label = n > 999 ? (n / 1000).toFixed(n > 9999 ? 0 : 1) + 'k' : n;
     const m = L.marker([c.y, c.x], {
       icon: L.divIcon({
