@@ -578,11 +578,18 @@ body:not(.rgnclosed) #report.on{right:312px}
 .tchildren{display:flex;flex-direction:column;gap:1px;position:relative;
   margin-left:7px;padding-left:11px;
   border-left:1px solid color-mix(in srgb,var(--muted) 32%,transparent)}
+.tchildren > .tbranch,
 .tchildren > .tbranch > .tnode,
 .tchildren > .tleaf{position:relative}
 .tchildren > .tbranch > .tnode::before,
 .tchildren > .tleaf::before{content:"";position:absolute;left:-11px;top:14px;
   width:8px;height:1px;background:color-mix(in srgb,var(--muted) 32%,transparent)}
+/* the guide is a border on the whole child box, so under the LAST child it runs
+   past the row — mask that tail (below its tick) with the panel background so
+   the line ends exactly at the last child. */
+.tchildren > .tbranch:last-child::after,
+.tchildren > .tleaf:last-child::after{content:"";position:absolute;left:-12px;
+  top:15px;bottom:0;width:3px;background:var(--panel)}
 
 /* ── busy indicator (live fetches take a few seconds) ──── */
 .busy{position:absolute;top:50%;left:calc(50% + var(--busyshift,0px));
