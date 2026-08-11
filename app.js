@@ -272,12 +272,12 @@ function buildPanel(){
   b.appendChild(accordion('Taxonomic group',
     state.grp.size ? `${state.grp.size} selected` : '',
     DATA.facets.grp.map(g => opt(g.k, g.n, state.grp.has(g.k), () => toggle(state.grp, g.k))),
-    true));
+    false));
   b.appendChild(accordion('Conservation status',
     state.iucn.size ? `${state.iucn.size} selected` : '',
     DATA.facets.iucn.map(s => opt(s.label, s.n, state.iucn.has(s.k),
       () => toggle(state.iucn, s.k), `var(${IUC[s.k]})`)),
-    true));
+    false));
 
   const list = INDEX.filter(matches);
   const h = document.createElement('div');
