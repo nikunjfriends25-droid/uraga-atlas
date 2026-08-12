@@ -402,6 +402,9 @@ text{font-family:"Sora",system-ui,sans-serif;font-variant-numeric:tabular-nums;
 .rbrand{font-size:9pt;letter-spacing:.16em;text-transform:uppercase;margin-bottom:6pt}
 .rbrand b{font-family:"Fraunces",Georgia,serif;font-style:italic;letter-spacing:0}
 .rsub{margin:1pt 0;font-size:9pt;color:#555}
+/* common name in the accent orange, matching the species record in the portal */
+.rsub.rcommon{color:#D9821A;font-weight:600;font-size:10pt}
+.rsub.rcommon:empty{display:none}
 .rstats{display:flex;flex-wrap:wrap;gap:14pt 20pt;margin:0 0 10pt;padding:0}
 .rstats div{margin:0}
 .rstats dt{font-size:7.5pt;text-transform:uppercase;letter-spacing:.07em;color:#666}

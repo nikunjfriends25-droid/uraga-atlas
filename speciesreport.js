@@ -104,7 +104,7 @@ function speciesReportHTML(sp, d, got, range, rings, photos){
   <header class="rhead">
     <div class="rbrand"><b>Uraga</b> Atlas</div>
     <h1>${esc(sp.sci)}</h1>
-    <p class="rsub">${esc(sp.com || d && d.com || '')}</p>
+    <p class="rsub rcommon">${esc(sp.com || d && d.com || '')}</p>
     <p class="rsub">${esc(lineage)}</p>
     <p class="rsub"><span class="rst rst-${iucn}">${iucn}</span> ${IUNAME[iucn] || iucn} ·
       generated ${date}</p>
