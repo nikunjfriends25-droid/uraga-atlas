@@ -716,8 +716,8 @@ body:not(.rgnclosed) #report.on{right:312px}
   background:var(--panel2);border:1px solid var(--line);color:var(--ink);font-size:12px}
 .aoiname:focus{outline:none;border-color:var(--accent)}
 .aoiname::placeholder{color:var(--faint)}
-.aoibtns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.aoibtns + .aoibtns{margin-top:12px}
+.aoibtns{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.aoibtns + .aoibtns{margin-top:16px}
 .aoibtn{padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:600;
   background:var(--panel2);border:1px solid var(--line);color:var(--ink);cursor:pointer;transition:.13s}
 .aoibtn:hover{border-color:var(--accent)}
