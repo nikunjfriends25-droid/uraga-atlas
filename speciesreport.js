@@ -117,8 +117,7 @@ function speciesReportHTML(sp, d, got, range, rings, photos){
     </div></section>` : ''}
 
   <dl class="rstats spstats">
-    ${facts.map(f => `<div><dt>${f[0]}</dt><dd>${esc(String(f[1]))}</dd>${
-      f[2] ? `<div class="rsrc">${esc(f[2])}</div>` : ''}</div>`).join('')}
+    ${facts.map(f => `<div><dt>${f[0]}</dt><dd>${esc(String(f[1]))}</dd></div>`).join('')}
   </dl>
 
   ${speciesMapSVG(sp, got && got.points, range, rings)}
@@ -189,7 +188,12 @@ async function makeSpeciesReport(sp, btn){
   await borders();
   await india();
   await labels();
-  const photos = ((got && got.photos) || []).filter(p => usableLicence(p.licence));
+  let photos = ((got && got.photos) || []).filter(p => usableLicence(p.licence));
+  // WYSIWYG: use whatever photo is currently promoted into the on-screen hero as
+  // the report's big image, so the report matches what the record is showing.
+  const gh = document.querySelector('.gal #gh');
+  const cur = gh && got && got.photos ? got.photos[Number(gh.dataset.i) || 0] : null;
+  if (cur && usableLicence(cur.licence)) photos = [cur, ...photos.filter(p => p !== cur)];
 
   openReport(speciesReportHTML(sp, d, got, range, rings, photos), sp.sci);
   setPageFurniture(sp.sci);           // running head shows the species
