@@ -284,8 +284,10 @@
 
   function clearAOI() {
     if (drawing) endDraw();
+    window.__aoiDrawing = false;
     if (typeof clearRegion === 'function') clearRegion();
     if (typeof paintRegionPanel === 'function') paintRegionPanel();
+    if (nameInput) nameInput.value = '';
     exportBtn.disabled = true; clearBtn.hidden = true;
     status('');
   }
