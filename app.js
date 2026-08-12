@@ -629,6 +629,9 @@ function cellsForView(){
 }
 
 function drawMap(){
+  // While an AOI is being drawn the corpus grid is hidden so the new outline is
+  // unobstructed; keep it hidden across zoom/pan until the draw ends (aoi.js).
+  if (window.__aoiDrawing){ pointLayer.clearLayers(); clusterLayer.clearLayers(); return; }
   if (!picked) rangeLayer.clearLayers();
   // regionLayer is owned by drawRegion() and must NOT be cleared here: the
   // zoomend path calls drawMap() on its own, which would wipe the outline of

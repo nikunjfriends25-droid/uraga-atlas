@@ -34,31 +34,81 @@
     out.push(r[r.length - 1]);
     return out;
   };
-  function toWKT(ring) {              // ring: [[lon,lat],…]; returns CCW, closed WKT
-    let r = thin(ring.slice());
+  const bboxArea = r => {
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    r.forEach(p => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); });
+    return (x1 - x0) * (y1 - y0);
+  };
+  // one polygon element: CCW, closed, thinned → "((lon lat,…))"
+  function ringWKT(ring, maxPts) {
+    let r = thin(ring.slice(), maxPts);
     const f = r[0], l = r[r.length - 1];
     if (f[0] !== l[0] || f[1] !== l[1]) r = r.concat([f]);
     if (!ringCCW(r)) r = r.slice().reverse();
-    return 'POLYGON((' + r.map(p => p[0].toFixed(5) + ' ' + p[1].toFixed(5)).join(',') + '))';
+    return '((' + r.map(p => p[0].toFixed(5) + ' ' + p[1].toFixed(5)).join(',') + '))';
+  }
+  // Build a single WKT for all rings. GBIF accepts one MULTIPOLYGON, so a
+  // many-part shapefile is one request. Vertex-budgeted (largest parts first).
+  function aoiWKT(rings) {
+    const budget = 2500;
+    const sized = rings.map(r => ({ r, a: bboxArea(r) })).sort((a, b) => b.a - a.a);
+    let used = 0; const parts = [];
+    for (const { r } of sized) {
+      const mp = Math.min(200, r.length);
+      if (used + mp > budget && parts.length) break;
+      used += mp; parts.push(ringWKT(r, mp));
+    }
+    return parts.length > 1 ? `MULTIPOLYGON(${parts.join(',')})` : `POLYGON${parts[0]}`;
+  }
+  function bboxWKT(rings) {                 // fallback if the full geometry is rejected
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    rings.forEach(r => r.forEach(p => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }));
+    return `POLYGON((${x0} ${y0},${x1} ${y0},${x1} ${y1},${x0} ${y1},${x0} ${y0}))`;
   }
 
   // ---- GBIF ------------------------------------------------------------
-  async function speciesInAOI(rings, onProg) {
-    const counts = new Map();
-    for (let i = 0; i < rings.length; i++) {
-      const q = new URLSearchParams();
-      q.set('geometry', toWKT(rings[i]));
-      q.set('facet', 'speciesKey');
-      q.set('facetLimit', '1000');
-      q.set('limit', '0');
-      q.set('hasCoordinate', 'true');
-      HERP_CLASSES.forEach(c => q.append('classKey', c));
-      const r = await fetch(`${GBIF}?${q}`).then(r => r.json());
-      const f = (r.facets && r.facets[0] && r.facets[0].counts) || [];
-      f.forEach(c => counts.set(+c.name, (counts.get(+c.name) || 0) + c.count));
-      onProg && onProg(i + 1, rings.length);
+  function facetURL(wkt) {
+    const q = new URLSearchParams();
+    q.set('geometry', wkt); q.set('facet', 'speciesKey');
+    q.set('facetLimit', '1000'); q.set('limit', '0'); q.set('hasCoordinate', 'true');
+    HERP_CLASSES.forEach(c => q.append('classKey', c));
+    return `${GBIF}?${q}`;
+  }
+  async function speciesInAOI(rings) {
+    let r;
+    try {
+      r = await fetch(facetURL(aoiWKT(rings))).then(x => { if (!x.ok) throw new Error('GBIF ' + x.status); return x.json(); });
+    } catch (e) {                          // polygon too large/complex → bounding box
+      r = await fetch(facetURL(bboxWKT(rings))).then(x => x.json());
     }
+    const counts = new Map();
+    ((r.facets && r.facets[0] && r.facets[0].counts) || []).forEach(c => counts.set(+c.name, c.count));
     return counts;
+  }
+
+  // ---- shapefile (.shp) polygon reader + reprojection ------------------
+  function parseSHP(u8) {                   // returns rings in the file's own CRS
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    const rings = []; let off = 100;        // skip 100-byte header
+    while (off + 8 <= dv.byteLength) {
+      const contentLen = dv.getInt32(off + 4, false);   // 16-bit words, big-endian
+      let p = off + 8;
+      const t = dv.getInt32(p, true); p += 4;
+      if (t === 5 || t === 15 || t === 25) {            // Polygon / PolygonZ / PolygonM
+        p += 32;                                        // bbox (4 doubles)
+        const nP = dv.getInt32(p, true); p += 4;
+        const nPt = dv.getInt32(p, true); p += 4;
+        const parts = []; for (let i = 0; i < nP; i++) { parts.push(dv.getInt32(p, true)); p += 4; }
+        const pts = []; for (let i = 0; i < nPt; i++) { pts.push([dv.getFloat64(p, true), dv.getFloat64(p + 8, true)]); p += 16; }
+        for (let i = 0; i < nP; i++) rings.push(pts.slice(parts[i], i + 1 < nP ? parts[i + 1] : nPt));
+      }
+      off += 8 + contentLen * 2;
+    }
+    return rings;
+  }
+  function reproject(rings, prj) {          // .prj WKT → lon/lat (only if projected)
+    if (!prj || !/PROJCS/.test(prj) || typeof proj4 === 'undefined') return rings;
+    return rings.map(r => r.map(xy => { const ll = proj4(prj, proj4.WGS84, xy); return [ll[0], ll[1]]; }));
   }
 
   // rows shaped exactly like region.sp: [id, n, sci, com, fam, grp, cls, iucn]
@@ -81,7 +131,7 @@
     exportBtn.disabled = true;
     let counts;
     try {
-      counts = await speciesInAOI(rings, (i, n) => n > 1 && status(`Querying GBIF… part ${i}/${n}`));
+      counts = await speciesInAOI(rings);
     } catch (e) {
       status('GBIF request failed: ' + e.message, true); return;
     }
@@ -116,6 +166,11 @@
   function startDraw() {
     if (drawing) return;
     drawing = true; pts = [];
+    // hide the corpus heat grid so the new outline is unobstructed (stays hidden
+    // across zoom/pan via the __aoiDrawing guard in app.js drawMap)
+    window.__aoiDrawing = true;
+    if (typeof pointLayer !== 'undefined') pointLayer.clearLayers();
+    if (typeof clusterLayer !== 'undefined') clusterLayer.clearLayers();
     tmp.addTo(map);
     map.doubleClickZoom.disable();
     map.getContainer().style.cursor = 'crosshair';
@@ -126,6 +181,7 @@
   }
   function endDraw() {
     drawing = false;
+    window.__aoiDrawing = false;
     map.off('click', onClick); map.off('dblclick', finishDraw);
     map.doubleClickZoom.enable();
     map.getContainer().style.cursor = '';
@@ -138,7 +194,7 @@
     endDraw();
     applyAOI([ring], 'Drawn area');
   }
-  function cancelDraw() { endDraw(); status(''); }
+  function cancelDraw() { endDraw(); if (typeof drawMap === 'function') drawMap(); status(''); }
 
   // ---- file upload -----------------------------------------------------
   function ringsFromGeoJSON(obj) {
@@ -166,24 +222,43 @@
       });
     }).filter(Boolean);
   }
+  function fromZip(buf, base) {             // KMZ or zipped shapefile
+    if (typeof fflate === 'undefined') { status('Unzip library not loaded.', true); return; }
+    let files;
+    try { files = fflate.unzipSync(new Uint8Array(buf)); }
+    catch (err) { status('Could not open the archive: ' + err.message, true); return; }
+    const names = Object.keys(files);
+    const dec = u8 => new TextDecoder().decode(u8);
+    const kml = names.find(n => /\.kml$/i.test(n));
+    const shp = names.find(n => /\.shp$/i.test(n));
+    let rings;
+    if (kml) rings = ringsFromKML(dec(files[kml]));
+    else if (shp) {
+      const prjName = names.find(n => /\.prj$/i.test(n));
+      rings = reproject(parseSHP(files[shp]), prjName ? dec(files[prjName]) : '');
+    } else { status('The archive has no .kml or .shp inside.', true); return; }
+    if (!rings || !rings.length) { status('No polygon found in the archive.', true); return; }
+    applyAOI(rings, base);
+  }
   function onFile(e) {
     const f = e.target.files[0];
     e.target.value = '';                  // allow re-selecting the same file
     if (!f) return;
-    const name = f.name.replace(/\.[^.]+$/, '');
+    const base = f.name.replace(/\.[^.]+$/, '');
     const lower = f.name.toLowerCase();
+    const reader = new FileReader();
     if (lower.endsWith('.kmz') || lower.endsWith('.zip')) {
-      status('Zipped files (KMZ, shapefile ZIP) aren’t supported yet — unzip and upload the .kml or .geojson inside.', true);
+      reader.onload = () => fromZip(reader.result, base);
+      reader.readAsArrayBuffer(f);
       return;
     }
-    const reader = new FileReader();
     reader.onload = () => {
       try {
         const rings = lower.endsWith('.kml')
           ? ringsFromKML(reader.result)
           : ringsFromGeoJSON(JSON.parse(reader.result));
         if (!rings.length) { status('No polygon found in that file.', true); return; }
-        applyAOI(rings, name);
+        applyAOI(rings, base);
       } catch (err) { status('Could not read that file: ' + err.message, true); }
     };
     reader.readAsText(f);
@@ -209,8 +284,9 @@
     if (!box) return;
     box.innerHTML = `
       <div class="aoihead">Area of interest</div>
-      <p class="aoihint">Draw a boundary or upload a GeoJSON/KML to list every reptile
-        and amphibian GBIF has recorded inside it — then export its report.</p>
+      <p class="aoihint">Draw a boundary or upload a GeoJSON, KML, KMZ or zipped
+        shapefile to list every reptile and amphibian GBIF has recorded inside it —
+        then export its report.</p>
       <div class="aoibtns">
         <button class="aoibtn" id="aoiDraw">✎ Draw polygon</button>
         <button class="aoibtn" id="aoiUpload">↥ Upload file</button>
