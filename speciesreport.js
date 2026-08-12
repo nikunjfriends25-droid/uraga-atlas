@@ -56,6 +56,7 @@ function speciesMapSVG(sp, points, range, rings){
       <path d="${land}" fill="#FFFFFF" stroke="#B9B5AC" stroke-width=".7"/>
       ${borderSvg}${indiaSvg}
       ${rangeSvg}${ptsSvg}
+      ${typeof mapLabelsSVG === 'function' ? mapLabelsSVG(X, Y, [x0, y0, x1, y1]) : ''}
       ${locatorInset(rings, [x0, y0, x1, y1], W, H)}
     </svg>
     <div class="rmapleg">
@@ -115,7 +116,7 @@ function speciesReportHTML(sp, d, got, range, rings, photos){
         `<img src="${p.url}" alt="">`).join('')}</div>` : ''}
     </div></section>` : ''}
 
-  <dl class="rstats">
+  <dl class="rstats spstats">
     ${facts.map(f => `<div><dt>${f[0]}</dt><dd>${esc(String(f[1]))}</dd>${
       f[2] ? `<div class="rsrc">${esc(f[2])}</div>` : ''}</div>`).join('')}
   </dl>
@@ -145,7 +146,7 @@ function speciesReportHTML(sp, d, got, range, rings, photos){
 
   ${g ? `<section class="rsec">
     <h2>Genetic resources</h2>
-    <dl class="rstats">
+    <dl class="rstats spstats">
       <div><dt>GenBank sequences</dt><dd>${g.s > 0 ? fmt(g.s) : 'None'}</dd></div>
       <div><dt>DNA barcode (COI)</dt><dd>${g.c > 0 ? 'Yes · ' + fmt(g.c) : 'None'}</dd></div>
       <div><dt>Sequenced genome</dt><dd>${g.g > 0 ? fmt(g.g) : 'None'}</dd></div>
@@ -187,6 +188,7 @@ async function makeSpeciesReport(sp, btn){
   const rings = await coastline();
   await borders();
   await india();
+  await labels();
   const photos = ((got && got.photos) || []).filter(p => usableLicence(p.licence));
 
   openReport(speciesReportHTML(sp, d, got, range, rings, photos), sp.sci);

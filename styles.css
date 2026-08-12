@@ -649,11 +649,14 @@ body:not(.rgnclosed) #report.on{right:312px}
   display:flex;flex-direction:column;min-width:0}
 .rstats dt{font-size:6.6pt;text-transform:uppercase;letter-spacing:.06em;color:#7a756c;
   line-height:1.25;margin:0 0 3pt}
-.rstats dd{font-size:12.5pt;font-weight:700;line-height:1.15;margin:0;
-  font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.rstats dd{font-size:11.5pt;font-weight:700;line-height:1.18;margin:0;
+  font-variant-numeric:tabular-nums;overflow-wrap:break-word;word-break:normal;hyphens:none}
 .rstats .rsrc{margin-top:auto;padding-top:3pt;font-size:6pt;color:#a29c92;
   text-transform:uppercase;letter-spacing:.04em}
 .rsec .rstats{margin-bottom:8pt}
+/* the species report has 6 facts (+3 genetics) — 3 wider columns wrap long
+   values like "Indomalayan" onto one line instead of mid-word */
+.rstats.spstats{grid-template-columns:repeat(3,1fr)}
 .rtable{margin-top:2pt}
 .rtable th{padding:3pt 4pt;background:#faf9f7}
 .rtable td{padding:3.5pt 4pt}
@@ -706,7 +709,11 @@ body:not(.rgnclosed) #report.on{right:312px}
 /* Area-of-interest controls in the regions panel */
 .aoibox{padding:11px 14px;border-top:1px solid var(--line)}
 .aoihead{font-size:12.5px;font-weight:700;color:var(--ink);letter-spacing:.01em}
-.aoihint{font-size:10.5px;color:var(--muted);line-height:1.45;margin:3px 0 11px}
+.aoihint{font-size:10.5px;color:var(--muted);line-height:1.45;margin:3px 0 9px}
+.aoiname{width:100%;box-sizing:border-box;padding:8px 10px;margin:0 0 11px;border-radius:8px;
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);font-size:12px}
+.aoiname:focus{outline:none;border-color:var(--accent)}
+.aoiname::placeholder{color:var(--faint)}
 .aoibtns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .aoibtns + .aoibtns{margin-top:12px}
 .aoibtn{padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:600;
@@ -769,10 +776,14 @@ body.basedark .india-outline{stroke:#e7d7ae;stroke-opacity:.85}
 .tour-back{color:var(--muted);border:1px solid var(--line)!important;border:0}
 .tour-back:disabled{opacity:.4}
 .tour-next{background:var(--accent);color:var(--on-accent)}
-.tour-help{position:fixed;left:16px;bottom:16px;z-index:60;width:34px;height:34px;
+/* sits just right of the left panel, over the map, so it never covers the
+   filters/species-list content in the panel's own bottom-left corner */
+.tour-help{position:fixed;left:calc(var(--panelw,330px) + 14px);bottom:16px;z-index:60;width:34px;height:34px;
   border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--accent);
   font-size:16px;font-weight:800;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .tour-help:hover{border-color:var(--accent)}
+/* the tour helper is meaningless over a report sheet — hide it there */
+#report.on ~ .tour-help{display:none}
 .welcome{display:grid;place-items:center;background:rgba(4,8,6,.7);backdrop-filter:blur(4px)}
 .tour-card{width:min(420px,92vw);background:var(--panel);border:1px solid var(--line);
   border-radius:18px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.5)}

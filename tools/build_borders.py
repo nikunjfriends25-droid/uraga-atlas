@@ -53,6 +53,35 @@ def main(a):
     kb = os.path.getsize(os.path.join(a.out, 'borders.json')) // 1024
     print(f'borders.json: {len(lines)} rings, {kb} KB')
 
+    # Place labels: India ADM1 (states) at a representative interior point, plus
+    # the five neighbour countries as coarse labels. Drawn on the report maps.
+    from shapely.ops import unary_union
+    labels = []
+    ind = os.path.join(CACHE, 'IND_ADM1.geojson')
+    if os.path.exists(ind):
+        for f in json.load(open(ind, encoding='utf-8'))['features']:
+            g = shape(f['geometry']).intersection(clip)
+            if g.is_empty:
+                continue
+            name = (f.get('properties') or {}).get('shapeName') or ''
+            if not name:
+                continue
+            rp = g.representative_point()
+            labels.append({'n': name, 'x': round(rp.x, 3), 'y': round(rp.y, 3), 't': 'state'})
+    for iso, nm in [('PAK', 'Pakistan'), ('NPL', 'Nepal'), ('BTN', 'Bhutan'),
+                    ('BGD', 'Bangladesh'), ('LKA', 'Sri Lanka')]:
+        p = os.path.join(CACHE, f'{iso}_ADM1.geojson')
+        if not os.path.exists(p):
+            continue
+        u = unary_union([shape(f['geometry']) for f in json.load(open(p, encoding='utf-8'))['features']]).intersection(clip)
+        if u.is_empty:
+            continue
+        rp = u.representative_point()
+        labels.append({'n': nm, 'x': round(rp.x, 3), 'y': round(rp.y, 3), 't': 'country'})
+    json.dump({'labels': labels}, open(os.path.join(a.out, 'labels.json'), 'w', encoding='utf-8'),
+              separators=(',', ':'))
+    print(f'labels.json: {len(labels)} labels')
+
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser()

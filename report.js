@@ -205,12 +205,13 @@ async function makeReport(btn){
   const rings = await coastline();
   await borders();
   await india();
+  await labels();
   const restricted = await sectionRestricted(rows);   // needs spread.json
   openReport(reportHTML(rows, thumbs, rings, restricted));
-  await imagesSettled((n, total) => {
-    btn.textContent = `Loading photographs… ${n}/${total}`;
-  });
+  // the report sheet is already on screen — free the trigger button immediately
+  // rather than holding it hostage until every photograph settles
   btn.disabled = false; btn.textContent = label;
+  await imagesSettled();
 }
 
 /** Show the report as a floating sheet. The same markup is what prints, so
@@ -390,7 +391,7 @@ function placeholder(){
  * on blank paper is unreadable — plus the region outline and the same heat
  * cells and colour ramp the screen map uses, so the two agree.
  */
-let _rings = null, _borders = null, _india = null;
+let _rings = null, _borders = null, _india = null, _labels = null;
 async function coastline(){
   if (_rings) return _rings;
   try {
@@ -414,6 +415,28 @@ async function india(){
     _india = (await fetch('data/india.json', DATA_FETCH).then(r => r.json())).lines;
   } catch { _india = []; }
   return _india;
+}
+async function labels(){
+  if (_labels) return _labels;
+  try {
+    _labels = (await fetch('data/labels.json', DATA_FETCH).then(r => r.json())).labels;
+  } catch { _labels = []; }
+  return _labels;
+}
+/** State/country name labels for the report maps. `X`/`Y` are the map's own
+ *  projection fns; only labels whose point falls inside the view are drawn. */
+function mapLabelsSVG(X, Y, bbox){
+  const [x0, y0, x1, y1] = bbox;
+  return (typeof _labels !== 'undefined' && _labels ? _labels : [])
+    .filter(l => l.x > x0 && l.x < x1 && l.y > y0 && l.y < y1)
+    .map(l => {
+      const country = l.t === 'country';
+      const txt = country ? l.n.toUpperCase() : l.n;
+      return `<text x="${X(l.x)}" y="${Y(l.y)}" text-anchor="middle" font-size="${country ? 7.5 : 6}"
+        font-family="Sora,sans-serif" font-weight="${country ? 700 : 500}" fill="${country ? '#9a7b46' : '#8b827a'}"
+        letter-spacing="${country ? 0.4 : 0}" paint-order="stroke" stroke="#FFFFFF" stroke-width="1.8"
+        stroke-linejoin="round" opacity=".92">${esc(txt)}</text>`;
+    }).join('');
 }
 
 
@@ -457,6 +480,8 @@ function locatorInset(rings, bbox, W, H){
   const path = ring => 'M' + ring.map(p => X(p[0]) + ',' + Y(p[1])).join(' L') + 'Z';
   const inBox = r => r.some(p => p[0] > e0 - 4 && p[0] < e1 + 4 && p[1] > f0 - 4 && p[1] < f1 + 4);
   const land = (rings || []).filter(r => r.length > 2 && inBox(r)).map(path).join(' ');
+  const indiaLine = (typeof _india !== 'undefined' && _india ? _india : [])
+    .filter(r => r.length > 1 && inBox(r)).map(path).join(' ');
   // the reported area's bbox as a red rectangle
   const bx = X(bbox[0]), by = Y(bbox[3]), bw = (X(bbox[2]) - X(bbox[0])).toFixed(1),
         bh = (Y(bbox[1]) - Y(bbox[3])).toFixed(1);
@@ -464,6 +489,7 @@ function locatorInset(rings, bbox, W, H){
   return `<g transform="translate(${tx},${ty})">
     <rect width="${IW}" height="${IH}" fill="#FFFFFF" stroke="#C9C6BE" stroke-width=".8" rx="3"/>
     <path d="${land}" fill="#EDEAE3" stroke="#C9C6BE" stroke-width=".5"/>
+    <path d="${indiaLine}" fill="none" stroke="#6b5836" stroke-width=".7"/>
     <rect x="${bx}" y="${by}" width="${Math.max(2.5, bw)}" height="${Math.max(2.5, bh)}"
       fill="#DC2626" fill-opacity=".22" stroke="#DC2626" stroke-width="1"/>
     <text x="${IW/2}" y="${IH-3}" text-anchor="middle" font-size="6" fill="#888"
@@ -554,6 +580,7 @@ function reportMapSVG(rings, rows){
       <g clip-path="url(#rgnclip)">${cellSvg}</g>
       <path d="${outline}" fill="none" stroke="#111" stroke-width="1.3"
             stroke-linejoin="round"/>
+      ${mapLabelsSVG(X, Y, [x0, y0, x1, y1])}
       ${locatorInset(rings, [x0, y0, x1, y1], W, H)}
     </svg>
     <div class="rmapleg"><span class="rmapttl">Records per ${cellSize.toFixed(2)}° cell</span>${legend}</div>

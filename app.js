@@ -629,9 +629,20 @@ function cellsForView(){
 }
 
 function drawMap(){
-  // While an AOI is being drawn the corpus grid is hidden so the new outline is
-  // unobstructed; keep it hidden across zoom/pan until the draw ends (aoi.js).
-  if (window.__aoiDrawing){ pointLayer.clearLayers(); clusterLayer.clearLayers(); return; }
+  // The corpus grid is hidden while an AOI is being drawn/queried AND while an
+  // AOI is applied: a custom area is defined by its outline, and the corpus grid
+  // would show its species' records across ALL of India, not inside the boundary.
+  if (window.__aoiDrawing || (region && region.aoi)){
+    pointLayer.clearLayers(); clusterLayer.clearLayers();
+    if (region && region.aoi && !window.__aoiDrawing){
+      $('#r-occ').textContent = fmt(region.nrec);
+      $('#r-cl').textContent = '—';
+      $('#r-sp').textContent = fmt(region.sp.length);
+      $('#foot').textContent = `${region.name} · ${fmt(region.sp.length)} species`;
+      drawDock(region.nrec, 0);
+    }
+    return;
+  }
   if (!picked) rangeLayer.clearLayers();
   // regionLayer is owned by drawRegion() and must NOT be cleared here: the
   // zoomend path calls drawMap() on its own, which would wipe the outline of

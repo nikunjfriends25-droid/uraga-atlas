@@ -124,22 +124,26 @@
   }
 
   // ---- apply an AOI ----------------------------------------------------
+  function restoreGrid() { window.__aoiDrawing = false; if (typeof drawMap === 'function') drawMap(); }
+
   async function applyAOI(rings, name) {
     rings = rings.filter(r => r && r.length >= 3);
     if (!rings.length) { alert('That file has no usable polygon.'); return; }
+    window.__aoiDrawing = true;       // keep the corpus grid hidden while querying (also for uploads)
     status('Querying GBIF for species in the area…');
     exportBtn.disabled = true;
     let counts;
     try {
       counts = await speciesInAOI(rings);
     } catch (e) {
-      status('GBIF request failed: ' + e.message, true); return;
+      restoreGrid(); status('GBIF request failed: ' + e.message, true); return;
     }
     const rows = aoiRows(counts);
-    if (!rows.length) { status('No reptile or amphibian records found in that area.', true); return; }
+    if (!rows.length) { restoreGrid(); status('No reptile or amphibian records found in that area.', true); return; }
 
+    const label = (nameInput && nameInput.value.trim()) || name;   // user-typed name wins
     region = {
-      aoi: true, name: name, lvl: 'aoi', parent: '', country: 'User-defined boundary',
+      aoi: true, name: label, lvl: 'aoi', parent: '', country: 'User-defined boundary',
       outline: rings.map(r => (r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1]) ? r : r.concat([r[0]])),
       sp: rows,
       nrec: [...counts.values()].reduce((a, b) => a + b, 0),
@@ -147,11 +151,13 @@
     };
     regionIds = new Set(rows.map(r => r[0]));
     rsel.fill(null);                 // the region dropdowns no longer describe the scope
+    window.__aoiDrawing = false;      // from here the region.aoi guard keeps the grid hidden
     render();
     drawRegion();                    // amber outline via the shared region layer
     zoomToRegion();
+    if (typeof drawMap === 'function') drawMap();   // ensure the HUD shows AOI totals, grid stays hidden
     if (typeof paintRegionPanel === 'function') paintRegionPanel();
-    status(`${fmt(rows.length)} species · ${fmt(region.nrec)} records in “${name}”.`);
+    status(`${fmt(rows.length)} species · ${fmt(region.nrec)} records in “${label}”.`);
     exportBtn.disabled = false;
     clearBtn.hidden = false;
   }
@@ -159,10 +165,23 @@
   // ---- drawing on the map ---------------------------------------------
   function redraw() {
     tmp.clearLayers();
-    if (pts.length) L.polyline(pts, { color: '#F59E0B', weight: 2, dashArray: '5,4' }).addTo(tmp);
-    pts.forEach(p => L.circleMarker(p, { radius: 4, color: '#B45309', fillColor: '#F59E0B', fillOpacity: 1, weight: 1.5 }).addTo(tmp));
+    if (pts.length) L.polyline(pts, { color: '#F59E0B', weight: 2, dashArray: '5,4', interactive: false }).addTo(tmp);
+    // markers are non-interactive so they never swallow the map click — otherwise
+    // clicking the first vertex to close the loop hits the marker, not the map.
+    pts.forEach((p, i) => L.circleMarker(p, {
+      radius: i === 0 ? 6 : 4, interactive: false, color: '#B45309',
+      fillColor: i === 0 ? '#FFFFFF' : '#F59E0B', fillOpacity: 1, weight: 2,
+    }).addTo(tmp));
   }
-  function onClick(e) { pts.push([e.latlng.lat, e.latlng.lng]); redraw(); finishBtn.disabled = pts.length < 3; }
+  function onClick(e) {
+    // click within ~14px of the first vertex closes the polygon
+    if (pts.length >= 3) {
+      const a = map.latLngToContainerPoint(L.latLng(pts[0][0], pts[0][1]));
+      const b = map.latLngToContainerPoint(e.latlng);
+      if (Math.hypot(a.x - b.x, a.y - b.y) < 14) { finishDraw(); return; }
+    }
+    pts.push([e.latlng.lat, e.latlng.lng]); redraw(); finishBtn.disabled = pts.length < 3;
+  }
   function startDraw() {
     if (drawing) return;
     drawing = true; pts = [];
@@ -179,9 +198,8 @@
     drawBtn.hidden = true; finishBtn.hidden = false; cancelBtn.hidden = false; finishBtn.disabled = true;
     status('Click to add points; double-click or “Finish” to close the shape.');
   }
-  function endDraw() {
-    drawing = false;
-    window.__aoiDrawing = false;
+  function endDraw() {                        // teardown only — the grid-hide flag
+    drawing = false;                          // is managed by finish/cancel/applyAOI
     map.off('click', onClick); map.off('dblclick', finishDraw);
     map.doubleClickZoom.enable();
     map.getContainer().style.cursor = '';
@@ -191,10 +209,10 @@
   function finishDraw() {
     if (pts.length < 3) return;
     const ring = pts.map(p => [p[1], p[0]]);   // [lat,lng] → [lon,lat]
-    endDraw();
+    endDraw();                                 // keep __aoiDrawing true → grid stays hidden
     applyAOI([ring], 'Drawn area');
   }
-  function cancelDraw() { endDraw(); if (typeof drawMap === 'function') drawMap(); status(''); }
+  function cancelDraw() { endDraw(); window.__aoiDrawing = false; if (typeof drawMap === 'function') drawMap(); status(''); }
 
   // ---- file upload -----------------------------------------------------
   function ringsFromGeoJSON(obj) {
@@ -274,7 +292,7 @@
 
   // ---- UI --------------------------------------------------------------
   const box = document.getElementById('aoibox');
-  let statusEl, drawBtn, finishBtn, cancelBtn, uploadInput, exportBtn, clearBtn;
+  let statusEl, drawBtn, finishBtn, cancelBtn, uploadInput, exportBtn, clearBtn, nameInput;
   function status(msg, warn) {
     statusEl.textContent = msg || '';
     statusEl.classList.toggle('warn', !!warn);
@@ -287,6 +305,8 @@
       <p class="aoihint">Draw a boundary or upload a GeoJSON, KML, KMZ or zipped
         shapefile to list every reptile and amphibian GBIF has recorded inside it —
         then export its report.</p>
+      <input type="text" class="aoiname" id="aoiName" maxlength="60"
+        autocomplete="off" placeholder="Report name (optional) — e.g. Silent Valley NP">
       <div class="aoibtns">
         <button class="aoibtn" id="aoiDraw">✎ Draw polygon</button>
         <button class="aoibtn" id="aoiUpload">↥ Upload file</button>
@@ -306,6 +326,9 @@
     uploadInput = box.querySelector('#aoiFile');
     exportBtn = box.querySelector('#aoiExport');
     clearBtn = box.querySelector('#aoiClear');
+    nameInput = box.querySelector('#aoiName');
+    // renaming after an AOI is applied updates the report title live
+    nameInput.oninput = () => { if (region && region.aoi && nameInput.value.trim()) region.name = nameInput.value.trim(); };
     drawBtn.onclick = startDraw;
     finishBtn.onclick = finishDraw;
     cancelBtn.onclick = cancelDraw;
@@ -356,6 +379,7 @@ function aoiMapSVG(rings) {
       ${borderSvg}${indiaSvg}
       <path d="${outline}" fill="#F59E0B" fill-opacity=".1" stroke="#B45309" stroke-width="1.5"
             stroke-linejoin="round"/>
+      ${typeof mapLabelsSVG === 'function' ? mapLabelsSVG(X, Y, [x0, y0, x1, y1]) : ''}
       ${locatorInset(rings, [x0, y0, x1, y1], W, H)}
     </svg>
     <p class="rmapnote">The checklist covers every reptile and amphibian with at least
