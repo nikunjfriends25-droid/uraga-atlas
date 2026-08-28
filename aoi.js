@@ -191,6 +191,7 @@
   function startDraw() {
     if (drawing) return;
     drawing = true; pts = [];
+    if (nameInput) nameInput.value = '';      // a new area starts with a blank name
     // hide the corpus heat grid so the new outline is unobstructed (stays hidden
     // across zoom/pan via the __aoiDrawing guard in app.js drawMap)
     window.__aoiDrawing = true;
@@ -343,7 +344,7 @@
     drawBtn.onclick = startDraw;
     finishBtn.onclick = finishDraw;
     cancelBtn.onclick = cancelDraw;
-    box.querySelector('#aoiUpload').onclick = () => uploadInput.click();
+    box.querySelector('#aoiUpload').onclick = () => { nameInput.value = ''; uploadInput.click(); };
     uploadInput.onchange = onFile;
     exportBtn.onclick = () => makeReport(exportBtn);
     clearBtn.onclick = clearAOI;
@@ -412,8 +413,10 @@
     paSearch.oninput = openList;
     paSearch.onkeydown = e => { if (e.key === 'Escape') { paList.hidden = true; paSearch.blur(); } };
     paSearch.onblur = () => setTimeout(() => { paList.hidden = true; }, 160);
-    paState.onchange = () => { openList(); paSearch.focus(); };
-    paType.onchange = () => { openList(); paSearch.focus(); };
+    // changing a filter clears the typed text so the new filter's results show
+    const onFilter = () => { paSearch.value = ''; openList(); paSearch.focus(); };
+    paState.onchange = onFilter;
+    paType.onchange = onFilter;
     // mousedown (not click) fires before the input's blur, avoiding a race
     paList.onmousedown = e => {
       const b = e.target.closest('.paitem'); if (!b) return;
