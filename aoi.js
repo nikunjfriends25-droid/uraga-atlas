@@ -149,7 +149,7 @@
     const label = (ui === aoiUI && nameInput && nameInput.value.trim()) ? nameInput.value.trim() : name;
     region = {
       aoi: true, name: label, lvl: 'aoi', lvlText: opts.lvlText, parent: '',
-      country: opts.country || 'User-defined boundary',
+      country: opts.country || 'User-defined boundary', paMeta: opts.meta,
       outline: rings.map(r => (r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1]) ? r : r.concat([r[0]])),
       sp: rows,
       nrec: [...counts.values()].reduce((a, b) => a + b, 0),
@@ -409,7 +409,8 @@
       paList.querySelectorAll('.paitem.on').forEach(x => x.classList.remove('on'));
       b.classList.add('on');
       const p = PADATA[+b.dataset.i];
-      applyAOI(p.r, p.n, { ui: paUI, country: p.st, lvlText: paLvl(p) });
+      applyAOI(p.r, p.n, { ui: paUI, country: p.st, lvlText: paLvl(p),
+                           meta: { sp: p.sp, yr: p.yr, ar: p.ar } });
     };
     renderPAList();
   }

@@ -629,6 +629,13 @@ function reportHTML(rows, thumbs, rings, restricted){
     <div class="rbrand"><b>Uraga</b> Atlas</div>
     <h1>${esc(region.name)}</h1>
     <p class="rsub">${esc(region.lvlText || LEVELS[region.lvl])}${region.parent ? ' · ' + esc(region.parent) : ''} · ${esc(region.country)}</p>
+    ${region.paMeta ? (m => {
+      const bits = [];
+      if (m.sp) bits.push(`Flagship species <b>${esc(m.sp)}</b>`);
+      if (m.yr) bits.push(`Notified <b>${esc(String(m.yr))}</b>`);
+      if (m.ar > 0) bits.push(`<b>${fmt(Math.round(m.ar))} km&sup2;</b>`);
+      return bits.length ? `<p class="rsub">${bits.join(' · ')}</p>` : '';
+    })(region.paMeta) : ''}
     <p class="rsub">Reptile &amp; amphibian species checklist · generated ${date}</p>
   </header>
 
