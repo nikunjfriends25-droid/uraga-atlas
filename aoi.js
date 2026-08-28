@@ -294,7 +294,8 @@
     if (typeof clearRegion === 'function') clearRegion();
     if (typeof paintRegionPanel === 'function') paintRegionPanel();
     if (nameInput) nameInput.value = '';
-    if (paList) paList.querySelectorAll('.paitem.on').forEach(b => b.classList.remove('on'));
+    if (paSearch) paSearch.value = '';
+    if (paList) paList.hidden = true;
     resetUIs();
     status(''); paStatus('');
   }
@@ -313,7 +314,6 @@
   function build() {
     if (!box) return;
     box.innerHTML = `
-      <div class="aoihead">Area of interest</div>
       <p class="aoihint">Draw a boundary or upload a GeoJSON, KML, KMZ or zipped
         shapefile to list every reptile and amphibian GBIF has recorded inside it —
         then export its report.</p>
@@ -365,27 +365,30 @@
     const q = paSearch.value.trim().toLowerCase(), st = paState.value, ty = paType.value;
     const items = PADATA.filter(p =>
       (!st || p.st === st) && (!ty || p.ty === ty) && (!q || p.n.toLowerCase().includes(q)));
-    paCount.textContent = `${fmt(items.length)} of ${fmt(PADATA.length)}`;
+    paCount.textContent = `${fmt(items.length)} of ${fmt(PADATA.length)} protected areas`;
     paList.innerHTML = items.length
       ? items.slice(0, 500).map(p =>
-          `<button class="paitem" data-i="${PADATA.indexOf(p)}">
+          `<button type="button" class="paitem" data-i="${PADATA.indexOf(p)}">
              <span class="pan">${esc(p.n)}</span>
              <span class="pam">${esc(p.st)} · ${esc(paSub(p))}</span></button>`).join('')
       : `<div class="pae">No protected area matches.</div>`;
   }
+  const openList = () => { renderPAList(); paList.hidden = false; };
   async function buildPA() {
     if (!pbox) return;
     pbox.innerHTML = `
-      <div class="aoihead">Protected areas</div>
       <p class="aoihint">Pick one of India's national parks &amp; wildlife sanctuaries
         to list the reptiles &amp; amphibians GBIF has recorded inside it.</p>
-      <input type="text" class="aoiname" id="paSearch" autocomplete="off" placeholder="Search protected areas…">
       <div class="pafilters">
         <select class="rgnq rgnco" id="paState"><option value="">All states</option></select>
         <select class="rgnq rgnco" id="paType"><option value="">All types</option></select>
       </div>
       <div class="pacount" id="paCount"></div>
-      <div class="palist" id="paList"><div class="pae">Loading protected areas…</div></div>
+      <div class="pacombo">
+        <input type="text" class="aoiname" id="paSearch" autocomplete="off"
+          placeholder="Search or select a protected area…">
+        <div class="palist" id="paList" hidden></div>
+      </div>
       <div class="aoistatus" id="paStatus" hidden></div>
       <div class="aoibtns">
         <button class="rgnpdf" id="paExport" disabled>Export report</button>
@@ -400,19 +403,28 @@
     paClearBtn.onclick = clearAOI;
 
     try { PADATA = (await fetch('data/protected_areas.json', DATA_FETCH).then(r => r.json())).pas; }
-    catch (e) { paList.innerHTML = `<div class="pae">Could not load protected areas.</div>`; return; }
+    catch (e) { paCount.innerHTML = `<span class="pae">Could not load protected areas.</span>`; return; }
     [...new Set(PADATA.map(p => p.st))].sort().forEach(s => paState.add(new Option(s, s)));
     [...new Set(PADATA.map(p => p.ty))].sort().forEach(t => paType.add(new Option(t, t)));
-    paSearch.oninput = renderPAList; paState.onchange = renderPAList; paType.onchange = renderPAList;
-    paList.onclick = e => {
+
+    // the input is a combobox: focus/typing opens the filtered dropdown
+    paSearch.onfocus = openList;
+    paSearch.oninput = openList;
+    paSearch.onkeydown = e => { if (e.key === 'Escape') { paList.hidden = true; paSearch.blur(); } };
+    paSearch.onblur = () => setTimeout(() => { paList.hidden = true; }, 160);
+    paState.onchange = () => { openList(); paSearch.focus(); };
+    paType.onchange = () => { openList(); paSearch.focus(); };
+    // mousedown (not click) fires before the input's blur, avoiding a race
+    paList.onmousedown = e => {
       const b = e.target.closest('.paitem'); if (!b) return;
-      paList.querySelectorAll('.paitem.on').forEach(x => x.classList.remove('on'));
-      b.classList.add('on');
+      e.preventDefault();
       const p = PADATA[+b.dataset.i];
+      paSearch.value = p.n;
+      paList.hidden = true;
       applyAOI(p.r, p.n, { ui: paUI, country: p.st, lvlText: paLvl(p),
                            meta: { sp: p.sp, yr: p.yr, ar: p.ar } });
     };
-    renderPAList();
+    renderPAList();   // primes the count
   }
 
   build();

@@ -44,7 +44,7 @@
 }
 </script>
 <link rel="stylesheet" href="vendor/leaflet.css?v=c02c12fe">
-<link rel="stylesheet" href="styles.css?v=620915ec">
+<link rel="stylesheet" href="styles.css?v=cca7a65e">
 </head>
 <body>
 <div class="app">
@@ -132,11 +132,22 @@
   <aside class="rgnpanel" id="rgnpanel">
     <div class="rgnhead">
       <h2>Regions &amp; reports</h2>
-      <p>Narrow country → state → district → sub-district. Export a checklist at any level.</p>
+      <p>Scope the atlas by administrative region, protected area, or a custom area — and export a report for any of them.</p>
     </div>
-    <div class="rgnbody" id="rgnbody"></div>
-    <div class="pabox" id="pabox"></div>
-    <div class="aoibox" id="aoibox"></div>
+    <div class="rgnsections">
+      <details class="rgnsec" id="secRegion" open>
+        <summary>Administrative region</summary>
+        <div class="rgnbody" id="rgnbody"></div>
+      </details>
+      <details class="rgnsec" id="secPA">
+        <summary>Protected areas</summary>
+        <div class="pabox" id="pabox"></div>
+      </details>
+      <details class="rgnsec" id="secAOI">
+        <summary>Area of interest</summary>
+        <div class="aoibox" id="aoibox"></div>
+      </details>
+    </div>
     <div class="rgnfoot">
       <label class="rgnlab">Map style</label>
       <div class="chips" id="viewToggle">
@@ -174,7 +185,7 @@
 <script src="app.js?v=200d98e9"></script>
 <script src="vendor/fflate.min.js?v=aaea4e81"></script>
 <script src="vendor/proj4.min.js?v=8bf11952"></script>
-<script src="aoi.js?v=ff7ef9d0"></script>
+<script src="aoi.js?v=914860ac"></script>
 <script src="tour.js?v=3029d338"></script>
 </body>
 </html>
