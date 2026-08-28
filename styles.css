@@ -339,8 +339,15 @@ text{font-family:"Sora",system-ui,sans-serif;font-variant-numeric:tabular-nums;
 .more:hover{border-color:var(--accent)}
 .link{color:var(--accent);font-weight:700}
 .provp{font-size:11px;color:var(--faint);line-height:1.7;margin:0;max-width:70ch}
-#boot{position:absolute;inset:0;z-index:20;display:grid;place-content:center;gap:6px;
-  background:var(--ground);text-align:center;font-size:13px}
+#boot{position:absolute;inset:0;z-index:20;display:grid;place-content:center;
+  background:var(--ground);font-size:13px;overflow:auto;padding:24px}
+.bootcard{max-width:min(640px,92vw);text-align:left;line-height:1.58}
+.bootbrand{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.bootbrand b{font-family:"Fraunces",Georgia,serif;font-style:italic;letter-spacing:0;color:var(--accent);font-weight:600}
+.bootcard h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:25px;line-height:1.22;
+  margin:0 0 14px;color:var(--ink)}
+.bootcard p{font-size:13px;color:var(--muted);margin:0 0 11px}
+.bootcard .bootloading{margin-top:16px;color:var(--faint)}
 @media (prefers-reduced-motion:reduce){.phbox.load{animation:none}}
 
 /* ── region picker ────────────────────────────────────── */

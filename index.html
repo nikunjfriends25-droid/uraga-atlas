@@ -44,11 +44,33 @@
 }
 </script>
 <link rel="stylesheet" href="vendor/leaflet.css?v=c02c12fe">
-<link rel="stylesheet" href="styles.css?v=5b4316d2">
+<link rel="stylesheet" href="styles.css?v=388ea648">
 </head>
 <body>
 <div class="app">
-  <div id="boot"><p>Loading the atlas…</p></div>
+  <!-- Real content in the initial HTML for crawlers (this SPA otherwise renders
+       an empty shell). Shown as the loading splash, then removed once the app
+       boots. -->
+  <div id="boot">
+    <main class="bootcard">
+      <div class="bootbrand"><b>Uraga</b> Atlas</div>
+      <h1>Reptiles &amp; amphibians of the Indian subcontinent</h1>
+      <p>Uraga Atlas is an interactive occurrence atlas of the <strong>1,096 reptile and
+        amphibian species</strong> recorded across the Indian subcontinent — India, Pakistan,
+        Nepal, Bhutan, Bangladesh and Sri Lanka. It maps georeferenced records for snakes,
+        lizards, geckos, skinks, agamas and chameleons, monitor lizards, turtles and tortoises,
+        crocodilians, frogs and toads, caecilians, and salamanders.</p>
+      <p>Explore a heatmap of roughly 98,000 georeferenced occurrence records, filter species by
+        taxonomic group or IUCN Red List conservation status, search by scientific or common name,
+        and open any species for photographs, its IUCN range map, a live occurrence map,
+        genetic-resource availability, and field notes. Export a printable species checklist and
+        report for any country, state, district, or a custom area you draw or upload.</p>
+      <p>Built on open biodiversity data — <strong>IUCN Red List</strong> (conservation status and
+        range polygons), <strong>GBIF</strong> (occurrence records), <strong>iNaturalist</strong>
+        (photographs), and <strong>NCBI GenBank</strong> (genetic resources).</p>
+      <p class="bootloading" aria-live="polite">Loading the interactive atlas…</p>
+    </main>
+  </div>
   <div id="stage"><div id="map"></div></div>
 
   <aside class="panel" id="panel">
