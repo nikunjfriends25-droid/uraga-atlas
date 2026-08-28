@@ -115,6 +115,9 @@ button{background:none;border:none;cursor:pointer}
 .readout dd{margin:0;font-size:17px;font-weight:700;line-height:1.2}
 .legend{font-size:11px;display:flex;flex-direction:column;gap:6px}
 .legend i{display:inline-block;border-radius:50%;background:var(--accent);opacity:.85;flex:none}
+.rangecaveat{margin-top:2px;padding-top:7px;border-top:1px solid var(--line);
+  font-size:9.5px;line-height:1.42;color:var(--muted);max-width:210px;
+  border-left:2px solid var(--accent);padding-left:7px;border-top:0}
 
 .zoom{position:absolute;right:14px;bottom:calc(var(--dockh, 176px) + 14px);
   transition:bottom .2s ease;z-index:3;display:flex;flex-direction:column;

@@ -509,6 +509,39 @@ async function drawRange(sp){
   rangeLayer.eachLayer(l => l.bringToBack && l.bringToBack());
   // with no points to frame, the range is what the camera should show
   if (live && !live.points.length) fitBounds(layer.getBounds());
+  rangeCaveat(layer);
+}
+
+/** Flag when the IUCN range polygon is much larger than where records actually
+ *  fall — usually a broader, PRE-SPLIT taxonomy (the range predates a species
+ *  being split; GBIF records follow current names). Shows a note on the legend
+ *  and sets live.rangeWide for the exported report. */
+function rangeCaveat(layer){
+  const legend = $('#legend');
+  const old = legend && legend.querySelector('.rangecaveat');
+  if (old) old.remove();
+  let wide = false;
+  if (live && live.points && live.points.length >= 30 && layer){
+    const rb = layer.getBounds();
+    if (rb.isValid()){
+      // percentile (5–95%) extent, so a few far-flung strays don't hide a
+      // genuinely concentrated core the way a raw min/max bbox would
+      const lons = live.points.map(p => p.lon).sort((a, b) => a - b);
+      const lats = live.points.map(p => p.lat).sort((a, b) => a - b);
+      const q = (a, f) => a[Math.floor(f * (a.length - 1))];
+      const pw = q(lons, .95) - q(lons, .05), ph = q(lats, .95) - q(lats, .05);
+      const rw = rb.getEast() - rb.getWest(), rh = rb.getNorth() - rb.getSouth();
+      // the core 90% of records sit in under ~20% of the range's bbox area
+      if (rw > 0 && rh > 0) wide = (pw * ph) / (rw * rh) < 0.20;
+    }
+  }
+  if (live) live.rangeWide = wide;
+  if (wide && legend){
+    const el = document.createElement('div');
+    el.className = 'rangecaveat';
+    el.textContent = 'IUCN range is much larger than where records fall — often a broader, pre-split taxonomy; records follow current taxonomy.';
+    legend.appendChild(el);
+  }
 }
 
 /** Fetch with a bounded retry. A single transient failure used to be cached
