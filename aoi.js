@@ -126,24 +126,30 @@
   // ---- apply an AOI ----------------------------------------------------
   function restoreGrid() { window.__aoiDrawing = false; if (typeof drawMap === 'function') drawMap(); }
 
-  async function applyAOI(rings, name) {
-    rings = rings.filter(r => r && r.length >= 3);
-    if (!rings.length) { alert('That file has no usable polygon.'); return; }
-    window.__aoiDrawing = true;       // keep the corpus grid hidden while querying (also for uploads)
-    status('Querying GBIF for species in the area…');
-    exportBtn.disabled = true;
+  // Shared by drawn/uploaded AOIs and the protected-area picker. `opts.ui`
+  // selects which control group (AOI box or PA box) shows status/export/clear;
+  // `opts.country`/`opts.lvlText` set the report's subtitle line.
+  async function applyAOI(rings, name, opts = {}) {
+    rings = (rings || []).filter(r => r && r.length >= 3);
+    if (!rings.length) { alert('That polygon is empty.'); return; }
+    const ui = opts.ui || aoiUI;
+    window.__aoiDrawing = true;       // keep the corpus grid hidden while querying
+    resetUIs();
+    ui.status('Querying GBIF for species in the area…');
     let counts;
     try {
       counts = await speciesInAOI(rings);
     } catch (e) {
-      restoreGrid(); status('GBIF request failed: ' + e.message, true); return;
+      restoreGrid(); ui.status('GBIF request failed: ' + e.message, true); return;
     }
     const rows = aoiRows(counts);
-    if (!rows.length) { restoreGrid(); status('No reptile or amphibian records found in that area.', true); return; }
+    if (!rows.length) { restoreGrid(); ui.status('No reptile or amphibian records found here.', true); return; }
 
-    const label = (nameInput && nameInput.value.trim()) || name;   // user-typed name wins
+    // for a drawn/uploaded AOI the name box can override the label; a PA uses its own name
+    const label = (ui === aoiUI && nameInput && nameInput.value.trim()) ? nameInput.value.trim() : name;
     region = {
-      aoi: true, name: label, lvl: 'aoi', parent: '', country: 'User-defined boundary',
+      aoi: true, name: label, lvl: 'aoi', lvlText: opts.lvlText, parent: '',
+      country: opts.country || 'User-defined boundary',
       outline: rings.map(r => (r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1]) ? r : r.concat([r[0]])),
       sp: rows,
       nrec: [...counts.values()].reduce((a, b) => a + b, 0),
@@ -155,11 +161,11 @@
     render();
     drawRegion();                    // amber outline via the shared region layer
     zoomToRegion();
-    if (typeof drawMap === 'function') drawMap();   // ensure the HUD shows AOI totals, grid stays hidden
+    if (typeof drawMap === 'function') drawMap();   // HUD shows AOI totals, grid stays hidden
     if (typeof paintRegionPanel === 'function') paintRegionPanel();
-    status(`${fmt(rows.length)} species · ${fmt(region.nrec)} records in “${label}”.`);
-    exportBtn.disabled = false;
-    clearBtn.hidden = false;
+    ui.status(`${fmt(rows.length)} species · ${fmt(region.nrec)} records in “${label}”.`);
+    ui.exportBtn.disabled = false;
+    ui.clearBtn.hidden = false;
   }
 
   // ---- drawing on the map ---------------------------------------------
@@ -288,18 +294,22 @@
     if (typeof clearRegion === 'function') clearRegion();
     if (typeof paintRegionPanel === 'function') paintRegionPanel();
     if (nameInput) nameInput.value = '';
-    exportBtn.disabled = true; clearBtn.hidden = true;
-    status('');
+    if (paList) paList.querySelectorAll('.paitem.on').forEach(b => b.classList.remove('on'));
+    resetUIs();
+    status(''); paStatus('');
   }
 
   // ---- UI --------------------------------------------------------------
   const box = document.getElementById('aoibox');
   let statusEl, drawBtn, finishBtn, cancelBtn, uploadInput, exportBtn, clearBtn, nameInput;
   function status(msg, warn) {
-    statusEl.textContent = msg || '';
-    statusEl.classList.toggle('warn', !!warn);
-    statusEl.hidden = !msg;
+    if (!statusEl) return;
+    statusEl.textContent = msg || ''; statusEl.classList.toggle('warn', !!warn); statusEl.hidden = !msg;
   }
+  // one status/export/clear group per control box; applyAOI targets the active one
+  let aoiUI, paUI; const UIS = [];
+  function resetUIs(){ UIS.forEach(u => { if (u.exportBtn) u.exportBtn.disabled = true; if (u.clearBtn) u.clearBtn.hidden = true; }); }
+
   function build() {
     if (!box) return;
     box.innerHTML = `
@@ -329,7 +339,6 @@
     exportBtn = box.querySelector('#aoiExport');
     clearBtn = box.querySelector('#aoiClear');
     nameInput = box.querySelector('#aoiName');
-    // renaming after an AOI is applied updates the report title live
     nameInput.oninput = () => { if (region && region.aoi && nameInput.value.trim()) region.name = nameInput.value.trim(); };
     drawBtn.onclick = startDraw;
     finishBtn.onclick = finishDraw;
@@ -339,8 +348,74 @@
     exportBtn.onclick = () => makeReport(exportBtn);
     clearBtn.onclick = clearAOI;
     addEventListener('keydown', e => { if (e.key === 'Escape' && drawing) cancelDraw(); });
+    aoiUI = { status, exportBtn, clearBtn }; UIS.push(aoiUI);
   }
+
+  // ---- Protected areas -------------------------------------------------
+  const pbox = document.getElementById('pabox');
+  let paSearch, paState, paType, paList, paCount, paStatusEl, paExportBtn, paClearBtn, PADATA = null;
+  function paStatus(msg, warn) {
+    if (!paStatusEl) return;
+    paStatusEl.textContent = msg || ''; paStatusEl.classList.toggle('warn', !!warn); paStatusEl.hidden = !msg;
+  }
+  const paSub = p => p.sub || p.ty;                         // e.g. "Tiger Reserve" or the type
+  const paLvl = p => p.sub ? `${p.ty} · ${p.sub}` : p.ty;   // report subtitle prefix
+
+  function renderPAList() {
+    const q = paSearch.value.trim().toLowerCase(), st = paState.value, ty = paType.value;
+    const items = PADATA.filter(p =>
+      (!st || p.st === st) && (!ty || p.ty === ty) && (!q || p.n.toLowerCase().includes(q)));
+    paCount.textContent = `${fmt(items.length)} of ${fmt(PADATA.length)}`;
+    paList.innerHTML = items.length
+      ? items.slice(0, 500).map(p =>
+          `<button class="paitem" data-i="${PADATA.indexOf(p)}">
+             <span class="pan">${esc(p.n)}</span>
+             <span class="pam">${esc(p.st)} · ${esc(paSub(p))}</span></button>`).join('')
+      : `<div class="pae">No protected area matches.</div>`;
+  }
+  async function buildPA() {
+    if (!pbox) return;
+    pbox.innerHTML = `
+      <div class="aoihead">Protected areas</div>
+      <p class="aoihint">Pick one of India's national parks &amp; wildlife sanctuaries
+        to list the reptiles &amp; amphibians GBIF has recorded inside it.</p>
+      <input type="text" class="aoiname" id="paSearch" autocomplete="off" placeholder="Search protected areas…">
+      <div class="pafilters">
+        <select class="rgnq rgnco" id="paState"><option value="">All states</option></select>
+        <select class="rgnq rgnco" id="paType"><option value="">All types</option></select>
+      </div>
+      <div class="pacount" id="paCount"></div>
+      <div class="palist" id="paList"><div class="pae">Loading protected areas…</div></div>
+      <div class="aoistatus" id="paStatus" hidden></div>
+      <div class="aoibtns">
+        <button class="rgnpdf" id="paExport" disabled>Export report</button>
+        <button class="reset" id="paClear" hidden>Clear</button>
+      </div>`;
+    paSearch = pbox.querySelector('#paSearch'); paState = pbox.querySelector('#paState');
+    paType = pbox.querySelector('#paType'); paList = pbox.querySelector('#paList');
+    paCount = pbox.querySelector('#paCount'); paStatusEl = pbox.querySelector('#paStatus');
+    paExportBtn = pbox.querySelector('#paExport'); paClearBtn = pbox.querySelector('#paClear');
+    paUI = { status: paStatus, exportBtn: paExportBtn, clearBtn: paClearBtn }; UIS.push(paUI);
+    paExportBtn.onclick = () => makeReport(paExportBtn);
+    paClearBtn.onclick = clearAOI;
+
+    try { PADATA = (await fetch('data/protected_areas.json', DATA_FETCH).then(r => r.json())).pas; }
+    catch (e) { paList.innerHTML = `<div class="pae">Could not load protected areas.</div>`; return; }
+    [...new Set(PADATA.map(p => p.st))].sort().forEach(s => paState.add(new Option(s, s)));
+    [...new Set(PADATA.map(p => p.ty))].sort().forEach(t => paType.add(new Option(t, t)));
+    paSearch.oninput = renderPAList; paState.onchange = renderPAList; paType.onchange = renderPAList;
+    paList.onclick = e => {
+      const b = e.target.closest('.paitem'); if (!b) return;
+      paList.querySelectorAll('.paitem.on').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      const p = PADATA[+b.dataset.i];
+      applyAOI(p.r, p.n, { ui: paUI, country: p.st, lvlText: paLvl(p) });
+    };
+    renderPAList();
+  }
+
   build();
+  buildPA();
 })();
 
 /* AOI report map: the outline over coastline + borders, no heat grid (GBIF
@@ -374,7 +449,7 @@ function aoiMapSVG(rings) {
   const outline = region.outline.map(path).join(' ');
 
   return `<section class="rmap">
-    <h2>Area of interest</h2>
+    <h2>${region.lvlText ? 'Protected area' : 'Area of interest'}</h2>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="The reported area of interest">
       <rect width="${W}" height="${H}" fill="#F3F1EC"/>
       <path d="${land}" fill="#FFFFFF" stroke="#B9B5AC" stroke-width=".7"/>

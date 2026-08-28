@@ -238,7 +238,7 @@ function setPageFurniture(label){
     document.head.appendChild(el);
   }
   const where = label || (region
-    ? `${region.name} · ${LEVELS[region.lvl]}${region.parent ? ', ' + region.parent : ''}`
+    ? `${region.name} · ${region.lvlText || LEVELS[region.lvl]}${region.parent ? ', ' + region.parent : ''}`
     : 'Species record');
   const when = new Date().toLocaleDateString('en-IN',
     {year: 'numeric', month: 'short', day: 'numeric'});
@@ -628,7 +628,7 @@ function reportHTML(rows, thumbs, rings, restricted){
   <header class="rhead">
     <div class="rbrand"><b>Uraga</b> Atlas</div>
     <h1>${esc(region.name)}</h1>
-    <p class="rsub">${LEVELS[region.lvl]}${region.parent ? ' · ' + esc(region.parent) : ''} · ${esc(region.country)}</p>
+    <p class="rsub">${esc(region.lvlText || LEVELS[region.lvl])}${region.parent ? ' · ' + esc(region.parent) : ''} · ${esc(region.country)}</p>
     <p class="rsub">Reptile &amp; amphibian species checklist · generated ${date}</p>
   </header>
 
