@@ -63,10 +63,14 @@ function speciesMapSVG(sp, points, range, rings){
       ${geom ? '<span><i style="background:#38A169;opacity:.5"></i> IUCN range</span>' : ''}
       ${np ? '<span><i style="background:#DC2626;border-radius:50%"></i> Occurrence record</span>' : ''}
     </div>
-    <p class="rmapnote">${geom ? 'IUCN range polygon (green)' : ''}${geom && np ? ', ' : ''}${
-      np ? fmt(np) + ' georeferenced occurrence records (red, live from GBIF' +
+    <p class="rmapnote">${geom ? 'IUCN range polygon (green)' : ''}${geom && np ? '. ' : ''}${
+      np ? fmt(np) + ((live && live.total > np) ? ' of ' + fmt(live.total) : '') +
+           ' georeferenced occurrence records plotted (red, live from GBIF' +
            ((live && live.obis) ? ' + OBIS' : '') + ')' : ''}${
       !geom && !np ? 'No mapped range or georeferenced records for this species.' : ''}.${
+      (live && live.total > np)
+        ? ' Plotted points follow GBIF’s default record order, not a spatial sample.' : ''}${
+      geom ? ' IUCN range polygons are expert-drawn and can reflect a broader or older taxonomy than the records.' : ''}${
       (typeof live !== 'undefined' && live && live.rangeWide)
         ? ' <b>Note:</b> the IUCN range is much larger than where records fall — often a broader, pre-split taxonomy; occurrence records follow current taxonomy.' : ''}
       Coastline: Natural Earth.</p>

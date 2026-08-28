@@ -686,6 +686,10 @@ function reportHTML(rows, thumbs, rings, restricted){
     reflect collecting and reporting effort, not abundance — a low count may
     mean a rare species or simply an under-surveyed area. Absence from this
     list is not evidence of absence in the field.</p>
+    ${region.aoi ? `<p><b>Species matching.</b> Species in this custom area are found by
+    querying GBIF for the boundary and matching returned taxon keys to the atlas checklist.
+    Very recent taxonomic splits may not be reflected, so this list can differ slightly from an
+    administrative-region report for the same area.</p>` : ''}
     <p><b>Coordinate precision.</b> Many records carry deliberately obscured or
     rounded coordinates, particularly for threatened species. Assignments near
     a boundary should be treated as approximate, and this list should not be

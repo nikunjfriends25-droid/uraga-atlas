@@ -158,13 +158,26 @@ def main(a):
         while len(g) > 500 and base < 0.55:
             base = min(0.55, base * 2)
             g = grid_at(base)
+        # Incidence for a Chao2 estimate: each occupied grid cell (at the final
+        # base) is a sampling unit; record which cells each species occupies.
+        # Chao2 (incidence) is the right family here — occurrence records are
+        # detections across space, NOT counts of individuals (which Chao1 needs).
+        spcells = collections.defaultdict(set)
+        occupied = set()
+        for pi in pis:
+            c = (int(lons[pi] / base), int(lats[pi] / base))
+            spcells[int(sid[pi])].add(c)
+            occupied.add(c)
+        byinc = collections.Counter(len(v) for v in spcells.values())
+        chao = {'q1': byinc.get(1, 0), 'q2': byinc.get(2, 0),
+                'm': len(occupied), 's': len(spcells)}
         dc, mc = collections.Counter(), collections.Counter()
         for pi in pis:
             if yrs[pi]:
                 dc[yrs[pi] // 10 * 10] += 1
             if mons[pi]:
                 mc[mons[pi]] += 1
-        return round(base, 4), g, dc, mc
+        return round(base, 4), g, dc, mc, chao
 
     # Names for the checklist come from the same place the app gets them.
     meta = {r[0]: r for r in db.execute('''
@@ -195,11 +208,15 @@ def main(a):
         species = sorted(
             ([s, n] + list(meta[s][1:]) for s, n in counts.items() if s in meta),
             key=lambda x: x[2])  # scientific name
-        gcell, ggrid, gdec, gmon = region_grid(geom, rpts.get(i, []))
+        gcell, ggrid, gdec, gmon, gchao = region_grid(geom, rpts.get(i, []))
         json.dump({
             'code': code, 'name': name, 'lvl': lvl,
             'country': COUNTRIES[iso], 'parent': parent, 'parentCode': parent_code,
             'nrec': sum(counts.values()),
+            # Chao2 incidence inputs (q1/q2 = species in exactly 1/2 grid cells,
+            # m = occupied cells, s = species): the report derives a richness
+            # estimate from these. Incidence, not abundance — see region_grid.
+            'chao': gchao,
             # this region's own occurrence grid at FINE degrees, keyed
             # group|status exactly like the corpus levels, so group and status
             # filters stay exact after the map is scoped to the region

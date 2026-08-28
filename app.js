@@ -522,7 +522,9 @@ function rangeCaveat(layer){
   const old = legend && legend.querySelector('.rangecaveat');
   if (old) old.remove();
   let wide = false;
-  if (live && live.points && live.points.length >= 30 && layer){
+  // only judge concentration when we actually fetched the whole record set —
+  // on a capped sample (GBIF default order) the percentile core would be biased
+  if (live && live.points && live.points.length >= 30 && live.total <= MAX_POINTS && layer){
     const rb = layer.getBounds();
     if (rb.isValid()){
       // percentile (5–95%) extent, so a few far-flung strays don't hide a
@@ -1068,7 +1070,8 @@ function drawRecord(){
       <div class="segnote">Range is shown on the map — occurrence points are fetched live from GBIF.</div>
       <div class="secttl">Provenance</div>
       <p class="provp">Status, assessment, trend, region and habitat from the <b>IUCN Red List</b>.
-        Occurrence points fetched live from <b>GBIF</b>. Photographs fetched live from
+        Occurrence points fetched live from <b>GBIF</b> (up to ${fmt(MAX_POINTS)} plotted, in GBIF's
+        default order; the record count is GBIF's full total). Photographs fetched live from
         <b>iNaturalist</b>, each carrying its own contributor credit and licence.
         Genetic-resource counts from <b>NCBI</b> (public domain), linking to the live database.
         Field notes are machine-generated and have not been reviewed by a specialist.</p>

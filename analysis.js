@@ -16,15 +16,6 @@ async function spread(){
 
 const esc = s => String(s || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-/** Chao1, bias-corrected. The species known from exactly one or two records
- *  carry the information about how much of the fauna is still unseen. */
-function chao1(counts){
-  const S = counts.length;
-  const f1 = counts.filter(n => n === 1).length;
-  const f2 = counts.filter(n => n === 2).length;
-  return {S, f1, f2, est: Math.round(S + (f1 * (f1 - 1)) / (2 * (f2 + 1)))};
-}
-
 /** A column chart as SVG rather than flexed divs.
  *
  *  The div version overflowed: `white-space:nowrap` on the labels stopped the
@@ -137,32 +128,51 @@ function sectionConcern(rows, byId){
 
 function sectionEffort(rows, byId){
   const counts = rows.map(r => r[1]).sort((a, b) => a - b);
-  const c = chao1(counts);
-  const med = counts[Math.floor(counts.length / 2)];
+  const med = counts[Math.floor(counts.length / 2)] || 0;
   const thin = counts.filter(n => n < 5).length;
+  const singles = counts.filter(n => n === 1).length;
+  const doubles = counts.filter(n => n === 2).length;
   const withRange = rows.filter(r => (byId.get(r[0]) || {}).rng).length;
   const stale = rows.filter(r => { const y = (byId.get(r[0]) || {}).yr; return y && y < 2010; }).length;
-  const unseen = Math.max(0, c.est - c.S);
   const dec = region.dec || {};
   const years = Object.keys(dec).map(Number).sort((a, b) => a - b);
   const dated = Object.values(dec).reduce((a, b) => a + b, 0);
+
+  // Chao2 (INCIDENCE) estimator — the correct family for occurrence records,
+  // which are detections across space, not counts of individuals (Chao1's
+  // requirement). Only shown for an unfiltered administrative region, which
+  // carries grid-cell sampling units (`region.chao`); a custom AOI/PA has record
+  // counts but no incidence structure, so no estimate is claimed there.
+  const q = region.chao;
+  const full = rows.length === (region.sp ? region.sp.length : rows.length);
+  let ch = null;
+  if (full && q && q.s && q.m > 1){
+    ch = { s: q.s, q1: q.q1, q2: q.q2,
+           est: Math.round(q.s + ((q.m - 1) / q.m) * (q.q1 * (q.q1 - 1)) / (2 * (q.q2 + 1))) };
+  }
+  const unseen = ch ? Math.max(0, ch.est - ch.s) : 0;
 
   return `<section class="rsec">
     <h2>Survey effort and data quality</h2>
     <dl class="rstats">
       <div><dt>Median records / species</dt><dd>${fmt(med)}</dd></div>
       <div><dt>Species under 5 records</dt><dd>${fmt(thin)}</dd></div>
-      <div><dt>Estimated true richness</dt><dd>${fmt(c.est)}</dd></div>
+      ${ch ? `<div><dt>Estimated richness (Chao2)</dt><dd>${fmt(ch.est)}</dd></div>`
+           : `<div><dt>Species from &le;2 records</dt><dd>${fmt(singles + doubles)}</dd></div>`}
       <div><dt>Have an IUCN range map</dt><dd>${fmt(withRange)}</dd></div>
     </dl>
-    <p class="rlead"><b>How complete is this list?</b> ${fmt(c.f1)} species are known
-      here from a single record and ${fmt(c.f2)} from exactly two. The Chao1
-      estimator puts likely true richness near <b>${fmt(c.est)}</b> species —
-      about <b>${fmt(unseen)}</b> more than the ${fmt(c.S)} actually recorded.
-      This is a statistical estimate from the shape of the record counts, not a
-      prediction of which species are missing, and it assumes reasonably even
-      sampling, which is rarely true in practice. Read it as a measure of how
-      much survey effort is still outstanding.</p>
+    ${ch ? `<p class="rlead"><b>How complete is this list?</b> With each occupied grid cell as a
+      sampling unit, ${fmt(ch.q1)} species are recorded in only one cell and ${fmt(ch.q2)} in
+      exactly two. The bias-corrected <b>Chao2</b> incidence estimator puts likely true richness
+      near <b>${fmt(ch.est)}</b> species — about <b>${fmt(unseen)}</b> beyond the ${fmt(ch.s)}
+      recorded. It is an estimate from how records are distributed across space, not a list of
+      which species are missing, and it assumes detection is comparable across cells (rarely
+      exactly true). Read it as how much survey effort is still outstanding.</p>`
+    : `<p class="rlead"><b>How complete is this list?</b> ${fmt(singles)} species are known here
+      from a single record and ${fmt(doubles)} from exactly two — a sign the list is still filling
+      in. No formal richness estimate is shown for a custom area: occurrence counts alone, without
+      spatial sampling units, cannot support one. Treat sparse-record species as under-surveyed
+      rather than truly rare.</p>`}
     ${stale ? `<p class="rlead">${fmt(stale)} species carry a Red List assessment
       predating 2010, so their status may not reflect current conditions.</p>` : ''}
     ${years.length ? `<h3 class="rsub2">Records by decade</h3>
