@@ -8,26 +8,33 @@
  * Both send Access-Control-Allow-Origin:*, so the browser can call them
  * directly with no key and no proxy.
  */
-/* The map is Leaflet over CARTO Positron raster tiles — a real slippy basemap
- * rather than the hand-drawn coastline this used to carry. Positron is
- * near-monochrome on purpose: the red occurrence points and amber clusters
- * have to stay the loudest thing on screen.
+/* The map is Leaflet over a near-monochrome slippy basemap: the red occurrence
+ * points and amber clusters have to stay the loudest thing on screen.
+ *
+ * Basemap tiles are KEY-FREE providers. (CARTO's Positron/Voyager/Dark Matter
+ * were dropped in 2026-08 — CARTO now watermarks unauthenticated raster tiles
+ * with "API KEY REQUIRED".) The pale-grey and dark styles are Esri's Light/Dark
+ * Gray Canvas, which ship label-free base tiles plus a separate reference
+ * (labels) layer — hence the optional `labels` URL, drawn just above the base.
  *
  * P is now only the atlas extent, used to scope the GBIF query and to frame
  * the initial view. Projection is Leaflet's (Web Mercator), not ours. */
 const P = {minLon:60, maxLon:98, minLat:4, maxLat:38};
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
 const BASEMAPS = {
   positron: {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attr: '&copy; OpenStreetMap contributors &copy; CARTO', max: 19, dark: false},
+    url: `${ESRI}/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+    labels: `${ESRI}/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+    attr: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors', max: 16, dark: false},
   voyager: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attr: '&copy; OpenStreetMap contributors &copy; CARTO', max: 19, dark: false},
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr: '&copy; OpenStreetMap contributors', max: 19, dark: false},
   darkmatter: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attr: '&copy; OpenStreetMap contributors &copy; CARTO', max: 19, dark: true},
+    url: `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+    labels: `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+    attr: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin', max: 16, dark: true},
   imagery: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    url: `${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
     attr: 'Imagery &copy; Esri, Maxar, Earthstar Geographics', max: 18, dark: true},
   topo: {
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
@@ -124,16 +131,21 @@ const regionLayer  = L.featureGroup().addTo(map);
 // IUCN range polygons sit under the points: 209 of 1,096 species have no
 // georeferenced records at all, and for those the range is the only map there is
 const rangeLayer   = L.layerGroup().addTo(map);
-let tileLayer = null;
+let tileLayer = null, labelLayer = null;
 
 function setBasemap(key){
   const b = BASEMAPS[key] || BASEMAPS.positron;
   state.base = key;
   if (tileLayer) map.removeLayer(tileLayer);
-  tileLayer = L.tileLayer(b.url, {
-    attribution: b.attr, maxZoom: b.max, detectRetina: true, crossOrigin: true,
-  }).addTo(tileLayer ? map : map);
+  if (labelLayer){ map.removeLayer(labelLayer); labelLayer = null; }
+  const opts = { maxZoom: 19, maxNativeZoom: b.max };
+  if (b.url.includes('{s}')) opts.subdomains = 'abc';
+  tileLayer = L.tileLayer(b.url, { ...opts, attribution: b.attr }).addTo(map);
   tileLayer.setZIndex(0);
+  if (b.labels){                              // Esri gray canvas: labels are a separate layer
+    labelLayer = L.tileLayer(b.labels, opts).addTo(map);
+    labelLayer.setZIndex(1);
+  }
   document.body.classList.toggle('basedark', b.dark);
   $('#attrib').innerHTML = b.attr + ' &middot; occurrences GBIF &middot; status IUCN';
 }
