@@ -198,6 +198,7 @@ async function makeSpeciesReport(sp, btn){
   if (cur && usableLicence(cur.licence)) photos = [cur, ...photos.filter(p => p !== cur)];
 
   openReport(speciesReportHTML(sp, d, got, range, rings, photos), sp.sci);
+  window.track && track('species_pdf', { sci: sp.sci });
   setPageFurniture(sp.sci);           // running head shows the species
   await imagesSettled();
   // match the hero frame to the photo's orientation (no hard portrait crop)

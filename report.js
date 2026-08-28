@@ -208,6 +208,9 @@ async function makeReport(btn){
   await labels();
   const restricted = await sectionRestricted(rows);   // needs spread.json
   openReport(reportHTML(rows, thumbs, rings, restricted));
+  window.track && track('report_export', {
+    kind: region && region.aoi ? (region.lvlText ? 'protected_area' : 'aoi') : 'region',
+    name: region && region.name });
   // the report sheet is already on screen — free the trigger button immediately
   // rather than holding it hostage until every photograph settles
   btn.disabled = false; btn.textContent = label;

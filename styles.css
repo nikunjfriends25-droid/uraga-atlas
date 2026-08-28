@@ -837,3 +837,16 @@ body.basedark .india-outline{stroke:#e7d7ae;stroke-opacity:.85}
 @media (max-width:820px){.tour-help{left:auto;right:14px}}
 .rc2 .coincident{font-size:10.5px;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);
   border-radius:6px;padding:5px 7px;margin:6px 0;line-height:1.4}
+
+/* privacy/consent banner (analytics.js) */
+.consent{position:fixed;left:0;right:0;bottom:0;z-index:2000;background:var(--panel);
+  border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(0,0,0,.24);padding:12px 16px}
+.consent-in{max-width:920px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:9px 18px}
+.consent-msg{margin:0;font-size:12px;color:var(--ink);line-height:1.5;flex:1;min-width:240px}
+.consent-det{margin:2px 0 0;font-size:11px;color:var(--muted);line-height:1.5;flex-basis:100%}
+.consent-more{background:none;border:0;color:var(--accent);font-size:12px;cursor:pointer;padding:0 0 0 2px;text-decoration:underline}
+.consent-btns{display:flex;gap:8px;flex:none}
+.consent-no{padding:8px 14px;border-radius:8px;font-size:12px;background:var(--panel2);
+  border:1px solid var(--line);color:var(--ink);cursor:pointer}
+.consent-yes{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;
+  background:var(--accent);color:var(--on-accent);border:0;cursor:pointer}

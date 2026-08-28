@@ -455,6 +455,7 @@ async function selectSpecies(sp){
   }
   picked = sp; detail = null; live = null; state.shown = state.shown || 60;
   setSpeciesURL(sp.id);
+  window.track && track('species_view', { sci: sp.sci });
   render();                                  // paint the selected state immediately
 
   // our own record — static JSON
@@ -1316,7 +1317,7 @@ $('#rgnhandle').onclick = () => {
   $('#rgnhandleIcon').textContent = closed ? '‹' : '›';
   fitControls(); map.invalidateSize();
 };
-$('#baseSel').onchange = e => setBasemap(e.target.value);
+$('#baseSel').onchange = e => { setBasemap(e.target.value); window.track && track('basemap', { style: e.target.value }); };
 
 document.querySelectorAll('#viewToggle .chip').forEach(b => {
   b.onclick = () => {

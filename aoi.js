@@ -164,6 +164,7 @@
     if (typeof drawMap === 'function') drawMap();   // HUD shows AOI totals, grid stays hidden
     if (typeof paintRegionPanel === 'function') paintRegionPanel();
     ui.status(`${fmt(rows.length)} species · ${fmt(region.nrec)} records in “${label}”.`);
+    window.track && track('area_select', { kind: ui === paUI ? 'protected_area' : 'aoi', name: label });
     ui.exportBtn.disabled = false;
     ui.clearBtn.hidden = false;
   }
