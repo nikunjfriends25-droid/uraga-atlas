@@ -723,10 +723,9 @@ body:not(.rgnclosed) #report.on{right:312px}
 .splink{color:inherit;text-decoration:none}
 .splink:hover{text-decoration:underline;text-decoration-thickness:.6pt}
 .rimg .splink{display:inline-block}
-/* in the saved PDF, make species links visibly clickable (they were plain black
-   text, so users couldn't tell they were links) */
-@media print{.splink{color:#B4772E;text-decoration:underline;text-decoration-thickness:.4pt;
-  text-underline-offset:1.5pt}}
+/* in the saved PDF, keep species links clickable and distinguishable by colour
+   only — the underline clashed with the table rows and italic descenders */
+@media print{.splink{color:#B4772E;text-decoration:none}}
 
 /* Area-of-interest controls in the regions panel */
 .aoibox{padding:2px 16px 14px}
