@@ -599,20 +599,30 @@ async function fetchLive(sp){
       oid: r.occurrenceID || '', src: 'GBIF',
     });
     jobs.push((async () => {
+      // Phase 1 — the first 300 points, so the map paints in ~1 request.
       const first = await getJSON(API.gbif(sp.gbif, POINT_LIMIT, 0));
       out.total = first.count || 0;
-      let recs = first.results || [];
-      const want = Math.min(out.total, MAX_POINTS);
-      if (want > POINT_LIMIT){
-        const offs = [];
-        for (let o = POINT_LIMIT; o < want; o += POINT_LIMIT) offs.push(o);
-        const more = await Promise.all(offs.map(o =>
-          getJSON(API.gbif(sp.gbif, POINT_LIMIT, o)).then(j => j.results || []).catch(() => [])));
-        more.forEach(r => { recs = recs.concat(r); });
-      }
-      out.points = recs
+      out.points = (first.results || [])
         .filter(r => r.decimalLatitude != null && r.decimalLongitude != null)
         .map(mapRec);
+      const want = Math.min(out.total, MAX_POINTS);
+      // Phase 2 — the remaining pages load in the BACKGROUND (detached, not
+      // awaited here) so photos + the first points are never held hostage to a
+      // slow or rate-limited page. They mutate out.points in place and repaint.
+      if (want > POINT_LIMIT){
+        out.more = true;
+        const offs = [];
+        for (let o = POINT_LIMIT; o < want; o += POINT_LIMIT) offs.push(o);
+        (async () => {
+          const more = await Promise.all(offs.map(o =>
+            getJSON(API.gbif(sp.gbif, POINT_LIMIT, o)).then(j => j.results || []).catch(() => [])));
+          more.forEach(rs => rs.forEach(r => {
+            if (r.decimalLatitude != null && r.decimalLongitude != null) out.points.push(mapRec(r));
+          }));
+          out.more = false;
+          liveUpdated(sp.id, out);
+        })();
+      }
     })().catch(() => out.errors.push('occurrence points')));
   } else out.errors.push('occurrence points (no GBIF key)');
 
@@ -655,6 +665,13 @@ async function fetchLive(sp){
   }
   delete out.obisRaw;
   return out;
+}
+
+/** Background occurrence pages arrived — repaint the species map with the fuller
+ *  point set, but only if the user is still on that species. Deliberately does
+ *  NOT refit the camera: the user may have panned/zoomed since the first paint. */
+function liveUpdated(id, out){
+  if (picked && picked.id === id && live === out) render();
 }
 
 /* ── map ──────────────────────────────────────────────── */
