@@ -1,0 +1,39 @@
+name: Refresh occurrence counts
+
+# Re-queries GBIF for every species' record count (same bbox the app uses) and
+# writes data/counts.json, which the app overlays onto the baked-in list counts.
+# Keeps the left-panel numbers tracking the live panel as GBIF grows.
+
+on:
+  schedule:
+    - cron: '17 3 * * 0'      # every Sunday ~03:17 UTC
+  workflow_dispatch: {}        # allow a manual run from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-counts
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Refresh counts from GBIF
+        run: python tools/refresh_counts.py
+      - name: Commit if changed
+        run: |
+          git config user.name "uraga-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/counts.json
+          if git diff --cached --quiet; then
+            echo "counts unchanged — nothing to commit"
+          else
+            git commit -m "data: weekly GBIF occurrence-count refresh"
+            git push
+          fi

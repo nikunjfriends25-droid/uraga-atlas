@@ -215,12 +215,19 @@ function clusterRadius(n, nmax, zoom, cellDegrees){
 (async function init(){
   try {
     // basemap.json is no longer fetched — the coastline comes from the tiles
-    const [clusters, index, india] = await Promise.all([
+    const [clusters, index, india, counts] = await Promise.all([
       fetch('data/clusters.json', DATA_FETCH).then(r => r.json()),
       fetch('data/index.json', DATA_FETCH).then(r => r.json()),
       fetch('data/india.geojson', DATA_FETCH).then(r => r.json()).catch(() => null),
+      // fresh GBIF occurrence counts, refreshed weekly by a GitHub Action
+      // (.github/workflows/refresh-counts.yml → data/counts.json, same bbox the
+      // app queries). Absent locally / before the first run — fall back to the
+      // count baked into index.json.
+      fetch('data/counts.json', DATA_FETCH).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     DATA = clusters; INDEX = index;
+    if (counts && counts.n)
+      for (const s of INDEX){ const c = counts.n[String(s.id)]; if (c != null) s.n = c; }
     setBasemap(state.base);
     if (india) drawIndia(india);
     state.z = levelFor(map.getZoom());
@@ -470,6 +477,12 @@ async function selectSpecies(sp){
   if (picked && picked.id === sp.id) render();
 
   // photographs + occurrence points — live APIs, a few seconds each
+  await loadLive(sp);
+}
+
+/** Fetch (or reuse) a species' live photos + points and paint them. Shared by
+ *  the initial selection and the Retry link. */
+async function loadLive(sp){
   const cached = liveCache.has(sp.id);
   if (!cached){
     liveCache.set(sp.id, fetchLive(sp));
@@ -487,6 +500,15 @@ async function selectSpecies(sp){
     render();
   }
   drawRange(sp);
+}
+
+/** Retry link target — drop the (partial/failed) cached result and re-fetch. */
+function retryLive(){
+  if (!picked) return;
+  liveCache.delete(picked.id);
+  live = null;
+  render();
+  loadLive(picked);
 }
 
 /** The IUCN range polygon, drawn beneath the occurrence points. For the 209
@@ -968,12 +990,17 @@ function drawDock(totalRecords, clusterCount){
   $('#expand').textContent = full ? 'Collapse ▾' : 'Full record ▴';
   $('#dockttl').textContent = 'Species record';
   const n = live ? live.points.length : 0;
+  // denominator counts every record we could plot: the GBIF total PLUS the OBIS
+  // records merged in (which are not part of GBIF's count), so `plotted` can
+  // never exceed the total the way "2,118 of 2,087" used to read
+  const denom = (live && ((live.total ?? picked.n) + (live.obis || 0)));
   $('#dockhint').innerHTML = live
-    ? `${fmt(n)} of ${fmt(live.total ?? picked.n)} records plotted${
+    ? `${fmt(n)} of ${fmt(denom)} records plotted${
         (window.__locations && window.__locations < n) ? ` · ${fmt(window.__locations)} location${window.__locations === 1 ? '' : 's'}` : ''}`
       + (live.obis ? ` · <b>+${fmt(live.obis)}</b> from OBIS` : '')
+      + (live.more ? ` · <span class="loadmore"><span class="spin">⟳</span> loading more points…</span>` : '')
       + (live.errors.length
-        ? ` · <span class="warn">${live.errors.join(', ')} unavailable</span>` : '')
+        ? ` · <span class="warn">${live.errors.join(', ')} unavailable — <a class="retry" onclick="retryLive();return false">⟳ Retry</a></span>` : '')
     : '<span class="dim">fetching photographs and records…</span>';
 
   if (full) return drawRecord();

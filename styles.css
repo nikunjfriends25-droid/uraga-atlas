@@ -332,6 +332,11 @@ text{font-family:"Sora",system-ui,sans-serif;font-variant-numeric:tabular-nums;
 /* states introduced by fetching over the network */
 .dim{color:var(--faint)}
 .warn{color:#E8A33D}
+.loadmore{color:var(--muted)}
+.loadmore .spin{display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.retry{color:var(--accent);text-decoration:underline;cursor:pointer;font-weight:600}
+@media(prefers-reduced-motion:reduce){.loadmore .spin{animation:none}}
 .phbox{border-radius:12px;background:var(--panel2);border:1px solid var(--line);display:block}
 .idhero .phbox{width:82px;height:82px;flex:none}
 .gal .phbox.hero{grid-column:1/-1;width:100%;aspect-ratio:1}
