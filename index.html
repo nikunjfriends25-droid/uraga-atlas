@@ -29,7 +29,9 @@
     {
       "@type": "Person",
       "@id": "https://uraga.in/#author",
-      "name": "Nikunj Jambu"
+      "name": "Nikunj Jambu",
+      "url": "https://www.linkedin.com/in/nikunj-jambu/",
+      "sameAs": ["https://www.linkedin.com/in/nikunj-jambu/"]
     },
     {
       "@type": "WebPage",
@@ -63,7 +65,7 @@
 }
 </script>
 <link rel="stylesheet" href="vendor/leaflet.css?v=c02c12fe">
-<link rel="stylesheet" href="styles.css?v=150f8b6f">
+<link rel="stylesheet" href="styles.css?v=470060d0">
 </head>
 <body>
 <div class="app">
@@ -87,9 +89,44 @@
       <p>Built on open biodiversity data — <strong>IUCN Red List</strong> (conservation status and
         range polygons), <strong>GBIF</strong> (occurrence records), <strong>iNaturalist</strong>
         (photographs), and <strong>NCBI GenBank</strong> (genetic resources).</p>
+      <p>Notable species covered include the <em>Indian cobra</em> (<i>Naja naja</i>),
+        <em>King cobra</em> (<i>Ophiophagus hannah</i>), <em>Russell's viper</em>
+        (<i>Daboia russelii</i>), <em>Indian rock python</em> (<i>Python molurus</i>),
+        <em>Common krait</em> (<i>Bungarus caeruleus</i>), <em>Gharial</em>
+        (<i>Gavialis gangeticus</i>), <em>Mugger crocodile</em> (<i>Crocodylus palustris</i>),
+        <em>Saltwater crocodile</em> (<i>Crocodylus porosus</i>), <em>Indian star tortoise</em>
+        (<i>Geochelone elegans</i>), <em>Indian softshell turtle</em>
+        (<i>Nilssonia gangetica</i>), <em>Bengal monitor</em> (<i>Varanus bengalensis</i>),
+        <em>Indian chameleon</em> (<i>Chamaeleo zeylanicus</i>), <em>Garden lizard</em>
+        (<i>Calotes versicolor</i>), <em>Indian bullfrog</em>
+        (<i>Hoplobatrachus tigerinus</i>), and many endemic species of the
+        <strong>Western Ghats</strong>, <strong>Himalayas</strong>,
+        <strong>Eastern Ghats</strong>, <strong>Andaman &amp; Nicobar Islands</strong>,
+        and <strong>Sri Lanka</strong>.</p>
+      <p>Coverage spans all major taxonomic groups: <strong>Colubridae</strong>,
+        <strong>Viperidae</strong>, <strong>Elapidae</strong>, <strong>Typhlopidae</strong>,
+        <strong>Boidae</strong>, <strong>Gekkonidae</strong>, <strong>Agamidae</strong>,
+        <strong>Scincidae</strong>, <strong>Varanidae</strong>, <strong>Lacertidae</strong>,
+        <strong>Chamaeleonidae</strong>, <strong>Testudinidae</strong>,
+        <strong>Geoemydidae</strong>, <strong>Cheloniidae</strong>,
+        <strong>Crocodylidae</strong>, <strong>Ranidae</strong>, <strong>Bufonidae</strong>,
+        <strong>Microhylidae</strong>, <strong>Rhacophoridae</strong>,
+        <strong>Caeciliidae</strong>, and more.</p>
+      <p class="bootcredit">Built by <a href="https://www.linkedin.com/in/nikunj-jambu/" target="_blank" rel="noopener">Nikunj Jambu</a></p>
       <p class="bootloading" aria-live="polite">Loading the interactive atlas…</p>
     </main>
   </div>
+  <noscript>
+    <div style="font-family:sans-serif;max-width:720px;margin:40px auto;padding:0 16px">
+      <h1>Uraga Atlas — reptiles &amp; amphibians of the Indian subcontinent</h1>
+      <p>Uraga Atlas is an interactive occurrence atlas of the 1,096 reptile and amphibian
+      species recorded across India, Pakistan, Nepal, Bhutan, Bangladesh and Sri Lanka.
+      JavaScript is required to use the interactive map. Please enable JavaScript in your
+      browser to explore occurrence records, range maps, photographs, and species checklists.</p>
+      <p>Built by <a href="https://www.linkedin.com/in/nikunj-jambu/">Nikunj Jambu</a> using
+      open biodiversity data from IUCN Red List, GBIF, iNaturalist, and NCBI GenBank.</p>
+    </div>
+  </noscript>
   <div id="stage"><div id="map"></div></div>
 
   <aside class="panel" id="panel">
@@ -108,6 +145,7 @@
       <span id="foot"></span>
       <button class="reset" id="reset">Reset</button>
     </div>
+    <div class="pcredit">Built by <a href="https://www.linkedin.com/in/nikunj-jambu/" target="_blank" rel="noopener" title="Nikunj Jambu on LinkedIn">Nikunj Jambu</a></div>
   </aside>
 
   <button class="edgetab tab-left" id="handle" aria-expanded="true"
