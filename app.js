@@ -790,10 +790,15 @@ function drawHeatCells(cells, counts){
         stroke: false, fillColor: heatColour(n, breaks), fillOpacity: .78,
         className: 'heatcell',
       });
-    const bLines = Object.entries(c.b)
-      .filter(([k]) => keep(k))
+    const grpTotals = {};
+    for (const [k,v] of Object.entries(c.b)){
+      if (!keep(k)) continue;
+      const grp = k.split('|')[0];
+      grpTotals[grp] = (grpTotals[grp] || 0) + v;
+    }
+    const bLines = Object.entries(grpTotals)
       .sort((a,b) => b[1]-a[1])
-      .map(([k,v]) => `<span>${k.split('|')[0]} <b>${fmt(v)}</b></span>`)
+      .map(([grp,v]) => `<span>${grp} <b>${fmt(v)}</b></span>`)
       .join('');
     rect.bindTooltip(`<b>${fmt(n)}</b> record${n===1?'':'s'} in this cell<br>
       <div class="clutip-grps">${bLines}</div>
