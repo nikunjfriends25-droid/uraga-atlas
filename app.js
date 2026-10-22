@@ -790,7 +790,13 @@ function drawHeatCells(cells, counts){
         stroke: false, fillColor: heatColour(n, breaks), fillOpacity: .78,
         className: 'heatcell',
       });
-    rect.bindTooltip(`<b>${fmt(n)}</b> occurrence record${n === 1 ? '' : 's'}<br>
+    const bLines = Object.entries(c.b)
+      .filter(([k]) => keep(k))
+      .sort((a,b) => b[1]-a[1])
+      .map(([k,v]) => `<span>${k.split('|')[0]} <b>${fmt(v)}</b></span>`)
+      .join('');
+    rect.bindTooltip(`<b>${fmt(n)}</b> record${n===1?'':'s'} in this cell<br>
+      <div class="clutip-grps">${bLines}</div>
       <span class="dim">${viewCell.toFixed(2)}° cell · click to zoom in</span>`,
       {direction:'top', sticky:true, className:'clutip'});
     rect.on('click', () => map.setView([c.y, c.x],
@@ -1018,13 +1024,17 @@ function drawDock(totalRecords, clusterCount){
   const d = detail;
   box.insertAdjacentHTML('beforeend', `<div class="ic kv">
     <div><dt>Occurrence records</dt><dd>${fmt((live && live.total) ?? picked.n)}</dd><div class="src">GBIF, live</div></div>
+    <div><dt>Last assessed</dt><dd>${(d && d.yr) || picked.yr || '—'}</dd><div class="src">IUCN Red List</div></div>
     <div><dt>Population trend</dt><dd>${(d && d.trend) || '—'}</dd><div class="src">IUCN Red List</div></div>
-    <div><dt>Region</dt><dd style="font-size:11px">${(d && d.realm) || '—'}</dd><div class="src">IUCN realms</div></div>
     <div><dt>Family</dt><dd style="font-size:11.5px">${picked.fam}</dd><div class="src">IUCN taxonomy</div></div></div>`);
 
   if (d && d.hab.length){
     box.insertAdjacentHTML('beforeend',
       `<div class="ic"><h4>Habitat</h4><div class="hbs">${d.hab.slice(0,6).map(h => `<span>${h}</span>`).join('')}</div></div>`);
+  }
+  if (region && !region.aoi){
+    box.insertAdjacentHTML('beforeend',
+      `<div class="srcnote" style="color:var(--accent);opacity:.8">Species list scoped to <b>${region.name}</b> · occurrence map shows full global range</div>`);
   }
   box.insertAdjacentHTML('beforeend', '<div class="srcnote">IUCN Red List · GBIF · iNaturalist</div>');
   const clr = document.createElement('div');
