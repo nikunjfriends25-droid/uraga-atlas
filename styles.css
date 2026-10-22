@@ -529,8 +529,8 @@ body.lbopen{overflow:hidden}
   border-radius:8px;box-shadow:0 8px 22px rgba(0,0,0,.4);font-size:11.5px;
   padding:6px 9px}
 .clutip::before{border-top-color:var(--line)}
-.clutip-grps{display:flex;flex-wrap:wrap;gap:2px 6px;margin:3px 0 2px;opacity:.85}
-.clutip-grps span{font-size:11px}
+.clutip-grps{display:grid;grid-template-columns:1fr 1fr;gap:1px 10px;margin:3px 0 2px;opacity:.85;min-width:180px}
+.clutip-grps span{font-size:11px;white-space:nowrap}
 .leaflet-tooltip{white-space:normal}
 path.occpt{cursor:pointer}
 /* satellite and dark basemaps need the readouts to sit on their own ground */
